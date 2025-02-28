@@ -61,7 +61,12 @@ void bestWaypointCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
         waypoint.pose.position.x = target_x;
         waypoint.pose.position.y = target_y;
         // waypoint.pose.position.z = target_z;
-        waypoint.pose.position.z = 1.0;
+
+        // Ensure the UAV doesn't go below 0.7m altitude
+        if (target_z < 0.7) {
+            target_z = 0.7;
+        }
+        waypoint.pose.position.z = target_z;
 
         // Set the orientation for yaw rotation
         waypoint.pose.orientation.x = 0.0;
