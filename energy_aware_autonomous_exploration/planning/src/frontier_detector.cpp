@@ -8,8 +8,6 @@
 #include <cmath>
 #include <algorithm>
 #include <geometry_msgs/PoseStamped.h>
-// #include "frontier_detector.h"
-
 
 
 // New struct to store cluster info
@@ -81,7 +79,7 @@ public:
 
         // Only this line in order to correctly, dynamically visualize frontiers (not clustered)
         publishFrontiers2(frontiers);
-\
+
         std::vector<ClusterInfo> cluster_infos = divisiveKMeansClustering(frontiers);
         publishFrontiers(cluster_infos);
 
@@ -214,7 +212,6 @@ public:
         uav_z = msg->pose.position.z;
     }
 
-    // USE THIS FUNCTION TO CALCULATE YAW BASED ON UAV POSITION!!!!! 
     double calculateYaw(double x, double y) {
         
         double dx = x - uav_x;
@@ -236,12 +233,8 @@ public:
         ROS_INFO_STREAM("Calculated yaw: " << yaw);
         return yaw;
     }
-
-
-
     
     
-    // void findAndPublishBestWaypoint(const std::vector<autonomous_exploration::ClusterInfo>& cluster_infos)
     void findAndPublishBestWaypoint(const std::vector<ClusterInfo>& cluster_infos) {
         // Check if there are any clusters
         if (cluster_infos.empty()) {
@@ -269,8 +262,6 @@ public:
         double target_yaw = calculateYaw(target_x, target_y);
 
     
-        // ROS_INFO_STREAM("Target waypoint: x=" << target_x << ", y=" << target_y << ", z=" << target_z << ", yaw=" << target_yaw);
-    
         // Publish the best waypoint
         geometry_msgs::PoseStamped waypoint;
         waypoint.header.stamp = ros::Time::now();
@@ -296,19 +287,12 @@ public:
 
 
 
-    
 
-
-
-    // void publishFrontiers(const std::vector<autonomous_exploration::ClusterInfo>& frontiers)
-    // void publishFrontiers(const std::vector<autonomous_exploration::ClusterInfo>& cluster_infos)
     void publishFrontiers(const std::vector<ClusterInfo>& cluster_infos) {
         visualization_msgs::MarkerArray marker_array;
         visualization_msgs::Marker marker;
         marker.header.frame_id = "world";
         marker.header.stamp = ros::Time::now();
-
-    
         
         ROS_INFO_STREAM("Publishing frontier markers with frame_id: " << marker.header.frame_id);
         

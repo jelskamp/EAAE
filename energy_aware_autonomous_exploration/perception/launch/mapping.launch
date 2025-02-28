@@ -3,8 +3,6 @@
     <!-- <arg name="quad_name" default="iris"/> -->
 
 
-
-
     <!-- Start Octomap Server -->
     <node pkg="octomap_server" type="octomap_server_node" name="octomap_server">
         <param name="resolution" value="0.1"/>

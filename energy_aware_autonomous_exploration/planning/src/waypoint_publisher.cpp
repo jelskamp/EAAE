@@ -7,7 +7,7 @@
 #include <agiros_msgs/QuadState.h>
 
 // Threshold for reaching the waypoint
-const double PROXIMITY_THRESHOLD = 0.8;  // Adjust this for more or less precision
+const double PROXIMITY_THRESHOLD = 0.8;  // Adjust this value as needed
 
 // UAV current position (to be updated via topic subscription)
 double uav_x = 0.0, uav_y = 0.0, uav_z = 0.0;
@@ -17,12 +17,6 @@ bool waypoint_reached = true;
 ros::Publisher waypoint_pub;
 
 
-// Callback to update the UAV's current position
-// void uavPositionCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
-//     uav_x = msg->pose.position.x;
-//     uav_y = msg->pose.position.y;
-//     uav_z = msg->pose.position.z;
-// }
 void uavPositionCallback(const agiros_msgs::QuadState::ConstPtr& msg) {
     uav_x = msg->pose.position.x;
     uav_y = msg->pose.position.y;
@@ -87,9 +81,7 @@ int main(int argc, char** argv) {
     ros::NodeHandle nh;
 
     // Subscriber to UAV position
-    // ros::Subscriber uav_pos_sub = nh.subscribe("/kingfisher/agiros_pilot/state", 10, uavPositionCallback);
     ros::Subscriber uav_pos_sub = nh.subscribe<agiros_msgs::QuadState>("/kingfisher/agiros_pilot/state", 10, uavPositionCallback);
-
 
     // Subscriber to the best waypoint from frontier_detector.cpp
     ros::Subscriber waypoint_sub = nh.subscribe("/best_waypoint", 10, bestWaypointCallback);

@@ -1,11 +1,5 @@
 <launch>
-    <!-- <arg name="quad_name" default="kingfisher"/> -->
-    <!-- <arg name="quad_name" default="iris"/> -->
-
-
     <!-- Start Publishing Best Frontier Waypoints -->
     <!-- <node pkg="autonomous_exploration" type="frontier_detector" name="frontier_detector" output="screen"/> -->
     <node pkg="autonomous_exploration" type="waypoint_publisher" name="waypoint_publisher" output="screen"/>
-    
-
 </launch>
