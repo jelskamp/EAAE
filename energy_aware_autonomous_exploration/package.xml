@@ -1,0 +1,33 @@
+<package format="2">
+  <name>autonomous_exploration</name>
+  <version>0.0.1</version>
+  <description>Autonomous UAV Exploration</description>
+
+  <maintainer email="jacobelskamp@hotmail.com">jacobelskamp</maintainer>
+  <license>BSD</license>
+
+  <!-- Add catkin as a buildtool dependency -->
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- Dependencies for mapping and perception -->
+
+  <!-- <build_export_depend>gazebo_ros</build_export_depend>
+  <build_export_depend>roscpp</build_export_depend>
+  <build_export_depend>geometry_msgs</build_export_depend> -->
+
+  <depend>roscpp</depend>
+  <depend>gazebo_ros</depend>
+  <depend>agiros_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>pcl_ros</depend>
+  <depend>pcl_conversions</depend>
+  <depend>octomap_ros</depend>
+  <depend>octomap_msgs</depend>
+  <depend>mavros</depend>
+  <depend>mavros_msgs</depend>
+  <depend>geometry_msgs</depend>
+
+  
+
+
+</package>

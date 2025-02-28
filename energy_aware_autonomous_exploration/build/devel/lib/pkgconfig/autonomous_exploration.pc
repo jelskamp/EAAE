@@ -1,0 +1,8 @@
+prefix=/home/jacob/catkin_ws_exploration/src/Energy-aware_Autonomous_Exploration/build/devel
+
+Name: autonomous_exploration
+Description: Description of autonomous_exploration
+Version: 0.0.1
+Cflags: -I/home/jacob/catkin_ws_exploration/src/Energy-aware_Autonomous_Exploration/perception/include
+Libs: -L${prefix}/lib 
+Requires: roscpp agiros_msgs sensor_msgs pcl_ros pcl_conversions octomap_ros octomap_msgs

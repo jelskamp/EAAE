@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -g  -shared -Wl,-soname,libgmockd.so -o ../lib/libgmockd.so CMakeFiles/gmock.dir/src/gmock-all.cc.o  -Wl,-rpath,/home/jacob/catkin_ws_exploration/src/Energy-aware_Autonomous_Exploration/build/gtest/lib ../lib/libgtestd.so -lpthread 

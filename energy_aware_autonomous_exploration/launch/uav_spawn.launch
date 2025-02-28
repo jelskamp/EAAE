@@ -1,0 +1,59 @@
+<launch>
+      <!-- Load Gazebo world -->
+      <include file="$(find gazebo_ros)/launch/empty_world.launch"/>
+      <!-- <include file="$(find rotors_gazebo)/launch/shapes_world.launch"/> -->
+
+      <!-- Convert Xacro to URDF and spawn UAV -->
+      <param name="robot_description" command="$(find xacro)/xacro $(find rotors_description)/urdf/iris_base.xacro namespace:=iris enable_mavlink_interface:=false enable_ground_truth:=false enable_logging:=false"/>
+
+      <node name="spawn_iris" pkg="gazebo_ros" type="spawn_model" output="screen"
+            args="-param robot_description -urdf -model iris" />
+
+      <!-- Publish TF for UAV -->
+      <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen">
+            <param name="robot_description" command="$(find xacro)/xacro $(find rotors_description)/urdf/iris_base.xacro namespace:=iris enable_mavlink_interface:=false enable_ground_truth:=false enable_logging:=false"/>
+      </node>
+
+
+      <!-- Publish static transform from map to base_link -->
+      <node pkg="tf2_ros" type="static_transform_publisher" name="map_to_base_link"
+            args="0 0 0 0 0 0 map iris/base_link" />
+
+      <!-- Ensure the depth camera frame exists -->
+      <node pkg="tf2_ros" type="static_transform_publisher" name="camera_to_base"
+            args="0 0 0.15 0 0 0 iris/base_link iris/camera_depth_link" />
+
+
+      <!-- Static Transform for Depth Camera Optical Link -->
+      <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="camera_optical_tf"
+            args="0 0 0 0 -1.5708 -1.5708 iris/camera_depth_link iris/camera_depth_optical_link" /> -->
+      <!-- Static Transform for Depth Camera Optical Center Link -->
+      <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="camera_optical_center_tf"
+            args="0 0 0 0 -1.5708 -1.5708 iris/camera_depth_link camera_depth_optical_center_link" /> -->
+
+      <!-- MAKE SURE CORRECT TRANSFORMS : option 2 -->
+      <node pkg="tf2_ros" type="static_transform_publisher" name="camera_optical_tf"
+            args="0 0 0 -1.5708 0 -1.5708 iris/camera_depth_link iris/camera_depth_optical_link" />
+      <!-- Static Transform for Depth Camera Optical Center Link -->
+      <node pkg="tf2_ros" type="static_transform_publisher" name="camera_optical_center_tf"
+            args="0 0 0 -1.5708 0 -1.5708 iris/camera_depth_link camera_depth_optical_center_link" />
+
+
+
+
+
+      <!-- Static TF: IMU and Rotors -->
+      <node pkg="tf2_ros" type="static_transform_publisher" name="imu_to_base_link"
+            args="0 0 0 0 0 0 iris/base_link iris/imu_link" />
+
+      <node pkg="tf2_ros" type="static_transform_publisher" name="rotor_0_to_base"
+            args="0.13 -0.22 0.023 0 0 0 iris/base_link iris/rotor_0" />
+      <node pkg="tf2_ros" type="static_transform_publisher" name="rotor_1_to_base"
+            args="-0.13 0.2 0.023 0 0 0 iris/base_link iris/rotor_1" />
+      <node pkg="tf2_ros" type="static_transform_publisher" name="rotor_2_to_base"
+            args="0.13 0.22 0.023 0 0 0 iris/base_link iris/rotor_2" />
+      <node pkg="tf2_ros" type="static_transform_publisher" name="rotor_3_to_base"
+            args="-0.13 -0.2 0.023 0 0 0 iris/base_link iris/rotor_3" />
+
+
+</launch>

@@ -1,0 +1,31 @@
+<launch>
+    <arg name="quad_name" default="kingfisher"/>
+    <!-- <arg name="quad_name" default="iris"/> -->
+
+
+
+
+    <!-- Start Octomap Server -->
+    <node pkg="octomap_server" type="octomap_server_node" name="octomap_server">
+        <param name="resolution" value="0.1"/>
+        <param name="frame_id" value="world"/>     <!-- map (for iris)-->
+        <param name="base_frame_id" value="/$(arg quad_name)/base_link"/> 
+
+        <param name="latch" value="true"/> 
+        <param name="track_changes" value="true"/> 
+        <param name="compress_map" value="false"/>
+        <param name="incremental_2D_projection" value="true"/>
+        <param name="publish_free_space" value="true"/>
+        <!-- <param name="publish_frequency" value="1.0"/> -->
+
+        <remap from="/cloud_in" to="/$(arg quad_name)/camera_depth/depth/points"/>
+    </node>
+
+
+    <!-- Start Frontier Detector -->
+    <node pkg="autonomous_exploration" type="frontier_detector" name="frontier_detector" output="screen"/>
+
+
+    <!-- <node pkg="autonomous_exploration" type="waypoint_publisher" name="waypoint_publisher" output="screen"/> -->
+
+</launch>
