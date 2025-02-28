@@ -31,6 +31,13 @@ To launch mapping algorithm:
 roslaunch autonomous_exploration mapping.launch
 ```
 
+To start exploration:
+```
+roslaunch autonomous_exploration waypoint_publisher.launch
+```
+
+
+
 Send waypoint commands by:
 ```
 rosrun autonomous_exploration send_waypoint.py
