@@ -26,7 +26,7 @@ void uavPositionCallback(const agiros_msgs::QuadState::ConstPtr& msg) {
 }
 
 
-
+// CURRENT ISSUE: target waypoints come in faster than the UAV can reach them. Lock target until UAV reaches it???? recalculate target only once uav reached target
 
 
 // Callback to receive the best waypoint
@@ -41,10 +41,11 @@ void bestWaypointCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
     double target_yaw = atan2(siny_cosp, cosy_cosp);
 
     // Check if UAV is already at the target
-    double distance_to_target = sqrt(pow(target_x - uav_x, 2) + pow(target_y - uav_y, 2) + pow(target_z - uav_z, 2));
+    // double distance_to_target = sqrt(pow(target_x - uav_x, 2) + pow(target_y - uav_y, 2) + pow(target_z - uav_z, 2));
+    double distance_to_target = sqrt(pow(target_x - uav_x, 2) + pow(target_y - uav_y, 2));
     ROS_WARN_STREAM("UAV POS: " << uav_x << ", " << uav_y << ", " << uav_z);
     ROS_WARN_STREAM("TARGET POS: " << target_x << ", " << target_y << ", " << target_z);
-    ROS_WARN_STREAM("AAAAAAAAAAAAAAAAAAA DISTTT : " << distance_to_target);
+    ROS_WARN_STREAM("AAAAAAAAAAAAAAAAAAA DISTTT x,y plane: " << distance_to_target);
     if (distance_to_target < PROXIMITY_THRESHOLD) {
         ROS_INFO("Waypoint reached. Waiting for next target...");
         waypoint_reached = true;
@@ -86,7 +87,8 @@ int main(int argc, char** argv) {
     ros::NodeHandle nh;
 
     // Subscriber to UAV position
-    ros::Subscriber uav_pos_sub = nh.subscribe<agiros_msgs::QuadState>("/kingfisher/agiros_pilot/state", 10, uavPositionCallback);
+    // ros::Subscriber uav_pos_sub = nh.subscribe<agiros_msgs::QuadState>("/kingfisher/agiros_pilot/state", 10, uavPositionCallback);
+    ros::Subscriber uav_pos_sub = nh.subscribe("/kingfisher/agiros_pilot/state", 10, uavPositionCallback);
 
     // Subscriber to the best waypoint from frontier_detector.cpp
     ros::Subscriber waypoint_sub = nh.subscribe("/best_waypoint", 10, bestWaypointCallback);
