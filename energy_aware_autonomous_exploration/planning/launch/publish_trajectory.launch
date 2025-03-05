@@ -1,0 +1,5 @@
+<launch>
+
+    <node pkg="autonomous_exploration" type="trajectory_publisher" name="trajectory_publisher" output="screen"/>
+
+</launch>

@@ -29,6 +29,7 @@
     <plugin name="update_uav_pose_plugin" filename="libupdate_uav_pose_plugin.so"/>
   </gazebo>
 
+
   <!-- Mount a generic odometry sensor without odometry map (working everywhere). -->
   <xacro:odometry_plugin_macro
     namespace="${namespace}"

@@ -8,6 +8,7 @@
 #include <cmath>
 #include <algorithm>
 #include <geometry_msgs/PoseStamped.h>
+#include <random>  
 
 
 // New struct to store cluster info
@@ -118,12 +119,95 @@ public:
     }
 
 
+    double getFarthestPointDistance(const std::vector<geometry_msgs::Point>& cluster) {
+        geometry_msgs::Point centroid = computeCentroid(cluster);
+        double max_distance = 0.0;
+    
+        for (const auto& p : cluster) {
+            double distance = sqrt(pow(p.x - centroid.x, 2) + pow(p.y - centroid.y, 2) + pow(p.z - centroid.z, 2));
+            if (distance > max_distance) {
+                max_distance = distance;
+            }
+        }
+        return max_distance;
+    }
+    
+
 
     
     // Perform divisive K-Means clustering to reduce the number of frontier points
-    std::vector<ClusterInfo> divisiveKMeansClustering(std::vector<geometry_msgs::Point>& points) {
+    // std::vector<ClusterInfo> divisiveKMeansClustering(std::vector<geometry_msgs::Point>& points) {
 
-        // std::vector<geometry_msgs::Point> cluster_centers;
+    //     // std::vector<geometry_msgs::Point> cluster_centers;
+    //     std::vector<ClusterInfo> cluster_infos;
+    //     std::vector<std::vector<geometry_msgs::Point>> clusters;
+    //     clusters.push_back(points);
+
+    //     while (!clusters.empty()) {
+    //         std::vector<geometry_msgs::Point> current_cluster = clusters.back();
+    //         clusters.pop_back();
+
+
+    //         // double cutoff_distance = (max_range / 2.0) * tan(horizontal_fov / 2.0);
+    //         // double cutoff_distance = (5 / 2.0) * tan(1.0 / 2.0);
+    //         double cutoff_distance = 10;
+
+    //         if (getFarthestPointDistance(current_cluster) < cutoff_distance) {
+    //         // if (current_cluster.size() < 100) { // Stop splitting if cluster is small > TODO: change to >= FOV
+
+    //             geometry_msgs::Point centroid = computeCentroid(current_cluster);
+    //             ClusterInfo cluster_info;
+    //             cluster_info.centroid = centroid;
+    //             cluster_info.cluster_size = current_cluster.size();
+    //             cluster_infos.push_back(cluster_info);
+
+    //             continue;
+    //         }
+
+    //         std::vector<geometry_msgs::Point> cluster1, cluster2;
+    //         geometry_msgs::Point centroid = computeCentroid(current_cluster);
+
+
+    //         // TODO : change to centroid comparison in 3D not just left/right of centroid (Y-direction)
+    //         for (const auto& p : current_cluster) {
+    //             if (p.y < centroid.y) {
+    //                 cluster1.push_back(p);
+    //             } else {
+    //                 cluster2.push_back(p);
+    //             }
+    //         }
+
+    //         // Split clusters based on 3D euclidean distance from centroid
+    //         // for (const auto& p : current_cluster) {
+    //         //     double distance = sqrt(pow(p.x - centroid.x, 2) + pow(p.y - centroid.y, 2) + pow(p.z - centroid.z, 2));
+    //         //     if (distance < resolution * 25) {  // Distance threshold
+    //         //         cluster1.push_back(p);
+    //         //     } else {
+    //         //         cluster2.push_back(p);
+    //         //     }
+    //         // }
+
+    //         if (!cluster1.empty()) clusters.push_back(cluster1);
+    //         if (!cluster2.empty()) clusters.push_back(cluster2);
+
+    //         // Print the contents of cluster_infos
+    //         // ROS_WARN_STREAM("XXXXXXX  CLUSTER INFOS CONTENTS:");
+    //         // for (const auto& cluster_info : cluster_infos) {
+    //         //     ROS_WARN_STREAM("Centroid -> x: " << cluster_info.centroid.x 
+    //         //                     << ", y: " << cluster_info.centroid.y 
+    //         //                     << ", z: " << cluster_info.centroid.z 
+    //         //                     << " | Cluster Size: " << cluster_info.cluster_size);
+    //         // }
+
+    //     }
+    //     // return cluster_centers;
+    //     return cluster_infos;
+    // }
+
+
+    // REVISED FUNCTION USING ACTUAL DIVISIVE K-MEANS CLUSTERING
+
+    std::vector<ClusterInfo> divisiveKMeansClustering(std::vector<geometry_msgs::Point>& points) {
         std::vector<ClusterInfo> cluster_infos;
         std::vector<std::vector<geometry_msgs::Point>> clusters;
         clusters.push_back(points);
@@ -132,57 +216,78 @@ public:
             std::vector<geometry_msgs::Point> current_cluster = clusters.back();
             clusters.pop_back();
 
+            // double cutoff_distance = 10;  // Stop splitting if the farthest point distance is below this threshold
+            double cutoff_distance = (5) * tan(1.0 / 2.0);   // Hardcoded for now, LATER: use URDF param max_range and horizontal_fov
+            if (getFarthestPointDistance(current_cluster) < cutoff_distance) {
 
-            if (current_cluster.size() < 100) { // Stop splitting if cluster is small > TODO: change to >= FOV
+                ROS_INFO_STREAM("\n\n Distnace less than cutoff: " << cutoff_distance << "\n\n");
 
-                geometry_msgs::Point centroid = computeCentroid(current_cluster);
                 ClusterInfo cluster_info;
-                cluster_info.centroid = centroid;
+                cluster_info.centroid = computeCentroid(current_cluster);
                 cluster_info.cluster_size = current_cluster.size();
                 cluster_infos.push_back(cluster_info);
-
                 continue;
             }
 
             std::vector<geometry_msgs::Point> cluster1, cluster2;
-            geometry_msgs::Point centroid = computeCentroid(current_cluster);
 
+            // Ensure at least two points exist for random selection
+            if (current_cluster.size() < 2) {
+                
+                ROS_INFO_STREAM("\n\n CLUSTER SIZE LESS THAN 2 \n\n");
 
-            // TODO : change to centroid comparison in 3D not just left/right of centroid (Y-direction)
+                ClusterInfo cluster_info;
+                cluster_info.centroid = computeCentroid(current_cluster);
+                cluster_info.cluster_size = current_cluster.size();
+                cluster_infos.push_back(cluster_info);
+                continue;
+            }
+
+            // Randomly select two initial points as cluster centroids
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            std::uniform_int_distribution<> distrib(0, current_cluster.size() - 1);
+
+            geometry_msgs::Point centroid1 = current_cluster[distrib(gen)];
+            geometry_msgs::Point centroid2 = current_cluster[distrib(gen)];
+
+            // Assign each point to the closest centroid
             for (const auto& p : current_cluster) {
-                if (p.y < centroid.y) {
+                double dist1 = sqrt(pow(p.x - centroid1.x, 2) + pow(p.y - centroid1.y, 2) + pow(p.z - centroid1.z, 2));
+                double dist2 = sqrt(pow(p.x - centroid2.x, 2) + pow(p.y - centroid2.y, 2) + pow(p.z - centroid2.z, 2));
+
+                if (dist1 < dist2) {
                     cluster1.push_back(p);
                 } else {
                     cluster2.push_back(p);
                 }
             }
 
-            // Split clusters based on 3D euclidean distance from centroid
-            // for (const auto& p : current_cluster) {
-            //     double distance = sqrt(pow(p.x - centroid.x, 2) + pow(p.y - centroid.y, 2) + pow(p.z - centroid.z, 2));
-            //     if (distance < resolution * 25) {  // Distance threshold
-            //         cluster1.push_back(p);
-            //     } else {
-            //         cluster2.push_back(p);
-            //     }
-            // }
-
             if (!cluster1.empty()) clusters.push_back(cluster1);
             if (!cluster2.empty()) clusters.push_back(cluster2);
-
-            // Print the contents of cluster_infos
-            // ROS_WARN_STREAM("XXXXXXX  CLUSTER INFOS CONTENTS:");
-            // for (const auto& cluster_info : cluster_infos) {
-            //     ROS_WARN_STREAM("Centroid -> x: " << cluster_info.centroid.x 
-            //                     << ", y: " << cluster_info.centroid.y 
-            //                     << ", z: " << cluster_info.centroid.z 
-            //                     << " | Cluster Size: " << cluster_info.cluster_size);
-            // }
-
         }
-        // return cluster_centers;
+
         return cluster_infos;
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -242,7 +347,7 @@ public:
             return;
         }
     
-        // Find the largest cluster by size
+        // Find the largest cluster by size > LATER: taking distance into account
         auto largest_cluster = std::max_element(cluster_infos.begin(), cluster_infos.end(), 
             [](const ClusterInfo& a, const ClusterInfo& b) {
                 return a.cluster_size < b.cluster_size;
@@ -283,6 +388,7 @@ public:
     
         ROS_INFO_STREAM("Publishing best waypoint: x=" << target_x << ", y=" << target_y << ", z=" << target_z << ", yaw=" << target_yaw);
         best_waypoint_pub.publish(waypoint);
+        
     }
 
 

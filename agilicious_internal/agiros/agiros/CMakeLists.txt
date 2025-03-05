@@ -168,6 +168,16 @@ target_link_libraries(uav_tf_broadcast ${catkin_LIBRARIES})
 
 
 
+# Add the odometry publisher node
+cs_add_executable(odom_publisher_for_ego src/odom_publisher_for_ego.cpp)
+target_link_libraries(odom_publisher_for_ego ${catkin_LIBRARIES})
+
+
+
+
+
+
+
 # Finish
 cs_install()
 cs_export()

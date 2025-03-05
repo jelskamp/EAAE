@@ -200,7 +200,11 @@ int main(int argc, char** argv) {
     ros::Subscriber waypoint_sub = nh.subscribe("/best_waypoint", 10, bestWaypointCallback);
 
     // Publisher for waypoints
-    waypoint_pub = nh.advertise<geometry_msgs::PoseStamped>("/kingfisher/agiros_pilot/go_to_pose", 10);
+    // waypoint_pub = nh.advertise<geometry_msgs::PoseStamped>("/kingfisher/agiros_pilot/go_to_pose", 10);
+    // ATTEMPT to send it to EGO_PLANNER
+    waypoint_pub = nh.advertise<geometry_msgs::PoseStamped>("/goal_frontier_waypoint", 10);
+    
+
 
     ros::spin();
     return 0;

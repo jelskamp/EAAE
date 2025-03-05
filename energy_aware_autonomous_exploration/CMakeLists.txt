@@ -57,3 +57,6 @@ add_executable(waypoint_publisher planning/src/waypoint_publisher.cpp)
 target_link_libraries(waypoint_publisher ${catkin_LIBRARIES})
 
 
+add_executable(trajectory_publisher planning/src/trajectory_publisher.cpp)
+target_link_libraries(trajectory_publisher ${catkin_LIBRARIES})
+

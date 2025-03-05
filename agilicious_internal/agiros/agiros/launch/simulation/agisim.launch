@@ -60,6 +60,12 @@
         </node>
     </group>
 
+
+    <!-- Node for odom publishing used in ego-planner -->
+    <node pkg="agiros" type="odom_publisher_for_ego" name="odom_publisher" output="screen"/>
+
+
+
     <!-- Visualization -->
     <node pkg="rviz" type="rviz" name="viz_face" args="-d $(find agiros)/resources/rviz/simulation.rviz"
           ns="$(arg quad_name)"/>
