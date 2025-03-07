@@ -71,9 +71,6 @@ public:
 
     void detectFrontiers(std::shared_ptr<octomap::OcTree> octree) {
         std::vector<geometry_msgs::Point> frontiers;
-        
-        // frontiers.clear();
-
 
         for (octomap::OcTree::leaf_iterator it = octree->begin_leafs(), end = octree->end_leafs(); it != end; ++it) {
             if (octree->isNodeOccupied(*it)) continue; // Ignore occupied nodes
