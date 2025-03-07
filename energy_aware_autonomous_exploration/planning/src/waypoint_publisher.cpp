@@ -106,6 +106,8 @@
 #include <algorithm>
 #include <agiros_msgs/QuadState.h>
 
+#include <std_msgs/Bool.h>
+
 // Threshold for reaching the waypoint
 const double PROXIMITY_THRESHOLD = 0.8;  // Adjust this value as needed
 
@@ -120,6 +122,11 @@ bool target_locked = false;
 
 // Publisher for sending waypoints
 ros::Publisher waypoint_pub;
+
+
+ros::Publisher waypoint_reached_pub;
+
+
 
 // Callback to update the UAV's current position
 void uavPositionCallback(const agiros_msgs::QuadState::ConstPtr& msg) {
@@ -158,6 +165,14 @@ void bestWaypointCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
         ROS_INFO("Waypoint reached. Waiting for next target...");
         waypoint_reached = true;
         target_locked = false;  // Unlock the target for the next update
+
+
+        // Publish waypoint_reached status for clustering initialization
+        std_msgs::Bool reached_msg;
+        reached_msg.data = true;
+        waypoint_reached_pub.publish(reached_msg);
+
+
         return;
     }
 
@@ -192,6 +207,8 @@ void bestWaypointCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
 int main(int argc, char** argv) {
     ros::init(argc, argv, "waypoint_publisher");
     ros::NodeHandle nh;
+
+    waypoint_reached_pub = nh.advertise<std_msgs::Bool>("/waypoint_reached", 10);
 
     // Subscriber to UAV position
     ros::Subscriber uav_pos_sub = nh.subscribe<agiros_msgs::QuadState>("/kingfisher/agiros_pilot/state", 10, uavPositionCallback);

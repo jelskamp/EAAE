@@ -9,6 +9,8 @@
 #include <geometry_msgs/Vector3.h>
 #include <tf/transform_datatypes.h>
 
+
+// TODO : INCLUDE / MAKE ONE WORKSPACE
 #include <quadrotor_msgs/PositionCommand.h>
 
 
@@ -170,7 +172,6 @@ int main(int argc, char** argv) {
     traj_pub = nh.advertise<agiros_msgs::Reference>("/kingfisher/agiros_pilot/trajectory", 10);
 
     // Subscribe to EGO-Planner trajectory topic
-    // ros::Subscriber traj_sub = nh.subscribe("/planning/pos_cmd", 10, trajectoryCallback);
     ros::Subscriber traj_sub = nh.subscribe("/planning/pos_cmd", 10, trajectoryCallback);
 
 

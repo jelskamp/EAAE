@@ -11,6 +11,12 @@
 #include <random>  
 
 
+#include <std_msgs/Bool.h>
+
+// CHECK IF TRUE OR FALSE!!!
+bool waypoint_reached = true;
+
+
 // New struct to store cluster info
 struct ClusterInfo {
     geometry_msgs::Point centroid;  // Centroid of the cluster
@@ -25,7 +31,10 @@ private:
     ros::Publisher frontier_pub;
     ros::Publisher frontier_pub2;
     ros::Subscriber uav_pos;
+    ros::Subscriber waypoint_reached_sub;
     double resolution;
+
+    std::vector<ClusterInfo> last_valid_clusters;
 
     double uav_x = 0.0;
     double uav_y = 0.0;
@@ -43,6 +52,7 @@ public:
 
         uav_pos = nh.subscribe("/kingfisher/agiros_pilot/state", 10, &FrontierDetector::uavPositionCallback, this);
 
+        waypoint_reached_sub = nh.subscribe("/waypoint_reached", 10, &FrontierDetector::waypointReachedCallback, this);
     }
 
 
@@ -205,9 +215,25 @@ public:
     // }
 
 
-    // REVISED FUNCTION USING ACTUAL DIVISIVE K-MEANS CLUSTERING
+    void waypointReachedCallback(const std_msgs::Bool::ConstPtr& msg) {
+        waypoint_reached = msg->data;
+        ROS_WARN_STREAM("Waypoint reached status updated: " << waypoint_reached);
+    }
+    
 
+
+    // REVISED FUNCTION USING ACTUAL DIVISIVE K-MEANS CLUSTERING
     std::vector<ClusterInfo> divisiveKMeansClustering(std::vector<geometry_msgs::Point>& points) {
+        
+        // POSSIBLY ADD WAITER TO CALCULATE CLUSTERPOINTS 1/2 SECONDS AFTER WAYPOINT REACHED???
+        if (!waypoint_reached) {
+            ROS_WARN("Skipping clustering - UAV is still moving.");
+            return last_valid_clusters;  // Return empty cluster list until UAV reaches waypoint
+        }
+        ros::Duration(2.0).sleep();
+        waypoint_reached = false;  // Reset waypoint status after recalculating clusters
+    
+    // std::vector<ClusterInfo> divisiveKMeansClustering(std::vector<geometry_msgs::Point>& points) {
         std::vector<ClusterInfo> cluster_infos;
         std::vector<std::vector<geometry_msgs::Point>> clusters;
         clusters.push_back(points);
@@ -267,6 +293,7 @@ public:
             if (!cluster2.empty()) clusters.push_back(cluster2);
         }
 
+        last_valid_clusters = cluster_infos;
         return cluster_infos;
     }
 
