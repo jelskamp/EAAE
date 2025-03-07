@@ -26,6 +26,6 @@
     <node pkg="autonomous_exploration" type="frontier_detector" name="frontier_detector" output="screen"/>
 
 
-    <!-- <node pkg="autonomous_exploration" type="waypoint_publisher" name="waypoint_publisher" output="screen"/> -->
+    <node pkg="autonomous_exploration" type="waypoint_publisher" name="waypoint_publisher" output="screen"/>
 
 </launch>
