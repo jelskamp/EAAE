@@ -13,6 +13,8 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_conversions
   octomap_ros
   octomap_msgs
+
+  quadrotor_msgs
 )
 
 
@@ -22,7 +24,7 @@ find_package(gazebo REQUIRED)
 
 catkin_package(
   INCLUDE_DIRS perception/include  # Ensure perception headers are included
-  CATKIN_DEPENDS roscpp agiros_msgs sensor_msgs pcl_ros pcl_conversions octomap_ros octomap_msgs 
+  CATKIN_DEPENDS roscpp agiros_msgs sensor_msgs pcl_ros pcl_conversions octomap_ros octomap_msgs quadrotor_msgs
 )
 
 catkin_install_python(PROGRAMS
