@@ -13,7 +13,9 @@
     
     <!-- Start Gazebo as in simulation.launch -->
     <!-- <arg name="world_name" default="$(find agiros)/resources/gazebo_files/basic.world"/>  -->
-    <arg name="world_name" default="$(find agiros)/resources/gazebo_files/basic_adjusted.world"/>
+    <!-- <arg name="world_name" default="$(find agiros)/resources/gazebo_files/basic_adjusted.world"/> -->
+    <!-- <arg name="world_name" default="$(find agiros)/resources/gazebo_files/basic_enclosed.world"/> -->
+    <arg name="world_name" default="$(find agiros)/resources/gazebo_files/basic_enclosed_small.world"/>
 
 
     <include file="$(find agiros)/launch/simulation/base_quad_simulation.launch">

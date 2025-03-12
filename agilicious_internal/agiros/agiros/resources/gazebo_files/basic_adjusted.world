@@ -52,6 +52,8 @@
     </scene>
     <wind/>
     
+
+    
     
     <model name='unit_box'>
       <pose>6.49198 1.54562 0.5 0 -0 0</pose>

@@ -15,16 +15,22 @@ find_package(catkin REQUIRED COMPONENTS
   octomap_msgs
 
   quadrotor_msgs
+
+ 
 )
 
 
 
 find_package(mavlink REQUIRED)
 find_package(gazebo REQUIRED)
+find_package(PCL REQUIRED)   # Ensure PCL is found
+find_package(octomap REQUIRED)  # Ensure Octomap is found
+find_package(yaml-cpp REQUIRED) # Ensure YAML-cpp is found
 
 catkin_package(
   INCLUDE_DIRS perception/include  # Ensure perception headers are included
   CATKIN_DEPENDS roscpp agiros_msgs sensor_msgs pcl_ros pcl_conversions octomap_ros octomap_msgs quadrotor_msgs
+  LIBRARIES yaml-cpp
 )
 
 catkin_install_python(PROGRAMS
@@ -44,6 +50,8 @@ include_directories(
   # ${MAVLINK_INCLUDE_DIRS}
   ${PROJECT_SOURCE_DIR}/perception/include  # Ensure correct include path
   ${PROJECT_SOURCE_DIR}/planning/include 
+
+  ${YAML_CPP_INCLUDE_DIR}
 )
 
 # Define the mapping node
@@ -62,3 +70,13 @@ target_link_libraries(waypoint_publisher ${catkin_LIBRARIES})
 add_executable(trajectory_publisher planning/src/trajectory_publisher.cpp)
 target_link_libraries(trajectory_publisher ${catkin_LIBRARIES})
 
+
+
+add_executable(custom_octomap_server perception/src/custom_octomap_server.cpp)
+target_link_libraries(custom_octomap_server ${catkin_LIBRARIES} ${OCTOMAP_LIBRARIES})
+
+# add_executable(custom_octomap_server2 perception/src/custom_octomap_server2.cpp)
+# target_link_libraries(custom_octomap_server2 ${catkin_LIBRARIES} ${OCTOMAP_LIBRARIES})
+# Custom Octomap Server 2
+add_executable(custom_octomap_server2 perception/src/custom_octomap_server2.cpp)
+target_link_libraries(custom_octomap_server2 ${catkin_LIBRARIES} ${OCTOMAP_LIBRARIES} ${PCL_LIBRARIES} yaml-cpp)

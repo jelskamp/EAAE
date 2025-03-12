@@ -1,0 +1,34 @@
+exploration:
+  global_frame: "world"
+  base_link_frame: "base_link"
+  depth: 14
+  radius: 5.5
+  bbx_minX: -50.0
+  bbx_maxX: 50.0
+  bbx_minY: -50.0
+  bbx_maxY: 50.0
+  bbx_minZ: 0.5
+  bbx_maxZ: 5.0
+  box_length: 8.0
+  k_gain: 100.0
+  lambda: 0.15
+  volume: 50000
+
+sensor_model:
+  horizontalFOV: 57.30
+  verticalFOV: 30
+  max_range: 5
+  pitch_angle: 10.0
+  probability_hit: 0.7
+  probability_miss: 0.4
+  clamping_thres_min: 0.12
+  clamping_thres_max: 0.97
+
+octomap:
+  resolution: 0.2  # Adjust resolution for better accuracy
+  octree_depth: 16
+  filename: "custom_octomap.bt"
+  file_path: "$(find catkin_ws_exp/src/energy_aware_autonomous_exploration)/data/"
+
+clustering:
+  kernel_bandwidth: 2

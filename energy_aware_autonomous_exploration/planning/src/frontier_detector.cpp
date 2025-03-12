@@ -74,8 +74,11 @@ public:
 
         for (octomap::OcTree::leaf_iterator it = octree->begin_leafs(), end = octree->end_leafs(); it != end; ++it) {
             if (octree->isNodeOccupied(*it)) continue; // Ignore occupied nodes
-            
+
             octomap::point3d node_coord = it.getCoordinate();
+
+            if (node_coord.z() > 0.3) continue;  // Ignore points above 0.5m
+
             if (isFrontier(octree, node_coord)) {
                 geometry_msgs::Point p;
                 p.x = node_coord.x();
