@@ -9,11 +9,7 @@
   <!-- Add catkin as a buildtool dependency -->
   <buildtool_depend>catkin</buildtool_depend>
 
-  <!-- Dependencies for mapping and perception -->
-
-  <!-- <build_export_depend>gazebo_ros</build_export_depend>
-  <build_export_depend>roscpp</build_export_depend>
-  <build_export_depend>geometry_msgs</build_export_depend> -->
+  
 
   <depend>roscpp</depend>
   <depend>gazebo_ros</depend>
@@ -28,6 +24,7 @@
   <depend>geometry_msgs</depend>
 
   <depend>quadrotor_msgs</depend>
+
 
   
 

@@ -7,7 +7,7 @@
     
 
     <node pkg="octomap_server" type="octomap_server_node" name="octomap_server">
-        <param name="resolution" value="0.1"/>
+        <param name="resolution" value="0.5"/>
         <param name="frame_id" value="world"/>     
         <param name="base_frame_id" value="/$(arg quad_name)/base_link"/> 
         <!-- BELOW TRUE< CHECK FALSE (SUPPOSEDLY BETTTER FORLARGE MAPS -->
@@ -63,6 +63,14 @@
 
     <!-- Start trajectory publishing from ego to agilicious -->
     <node pkg="autonomous_exploration" type="trajectory_publisher" name="trajectory_publisher" output="screen"/>
+
+
+    <!-- Track performance -->
+    <node pkg="autonomous_exploration" type="performance_tracker" name="performance_tracker" output="screen"/>
+
+
+ 
+
 
 
 </launch>

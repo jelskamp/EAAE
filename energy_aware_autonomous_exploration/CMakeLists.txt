@@ -21,6 +21,13 @@ find_package(catkin REQUIRED COMPONENTS
 
 
 
+find_package(Python3 REQUIRED COMPONENTS Development NumPy)
+include_directories(${Python3_INCLUDE_DIRS})
+link_libraries(${Python3_LIBRARIES})
+
+
+
+
 find_package(mavlink REQUIRED)
 find_package(gazebo REQUIRED)
 find_package(PCL REQUIRED)   # Ensure PCL is found
@@ -50,6 +57,9 @@ include_directories(
   # ${MAVLINK_INCLUDE_DIRS}
   ${PROJECT_SOURCE_DIR}/perception/include  # Ensure correct include path
   ${PROJECT_SOURCE_DIR}/planning/include 
+  ${PROJECT_SOURCE_DIR}/utilities/include
+
+  ${PROJECT_SOURCE_DIR}/include
 
   ${YAML_CPP_INCLUDE_DIR}
 )
@@ -75,8 +85,10 @@ target_link_libraries(trajectory_publisher ${catkin_LIBRARIES})
 add_executable(custom_octomap_server perception/src/custom_octomap_server.cpp)
 target_link_libraries(custom_octomap_server ${catkin_LIBRARIES} ${OCTOMAP_LIBRARIES})
 
-# add_executable(custom_octomap_server2 perception/src/custom_octomap_server2.cpp)
-# target_link_libraries(custom_octomap_server2 ${catkin_LIBRARIES} ${OCTOMAP_LIBRARIES})
-# Custom Octomap Server 2
-add_executable(custom_octomap_server2 perception/src/custom_octomap_server2.cpp)
-target_link_libraries(custom_octomap_server2 ${catkin_LIBRARIES} ${OCTOMAP_LIBRARIES} ${PCL_LIBRARIES} yaml-cpp)
+
+add_executable(performance_tracker utilities/performance_tracker.cpp)
+target_link_libraries(performance_tracker ${catkin_LIBRARIES} ${OCTOMAP_LIBRARIES} pthread)
+
+
+
+

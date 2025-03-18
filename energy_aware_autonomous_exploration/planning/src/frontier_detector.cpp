@@ -77,7 +77,7 @@ public:
 
             octomap::point3d node_coord = it.getCoordinate();
 
-            if (node_coord.z() > 0.3) continue;  // Ignore points above 0.5m
+            if (node_coord.z() > 0.3 || node_coord.z() < 0.0) continue;  // Ignore points above 0.3m and below ground
 
             if (isFrontier(octree, node_coord)) {
                 geometry_msgs::Point p;
@@ -434,10 +434,15 @@ public:
         marker.type = visualization_msgs::Marker::SPHERE_LIST;
         marker.action = visualization_msgs::Marker::ADD;
         marker.scale.x = marker.scale.y = marker.scale.z = resolution;
+        // marker.color.a = 1.0;
+        // marker.color.r = 1.0;
+        // marker.color.g = 1.0;
+        // marker.color.b = 0.0;
         marker.color.a = 1.0;
         marker.color.r = 1.0;
-        marker.color.g = 1.0;
-        marker.color.b = 0.0;
+        marker.color.g = 0.0;
+        marker.color.b = 1.0;
+
 
 
         // Loop through each cluster and add its centroid as a marker
@@ -469,10 +474,15 @@ public:
         marker2.type = visualization_msgs::Marker::SPHERE_LIST;
         marker2.action = visualization_msgs::Marker::ADD;
         marker2.scale.x = marker2.scale.y = marker2.scale.z = resolution;
-        marker2.color.a = 1.0;
+        // marker2.color.a = 1.0;
+        // marker2.color.r = 1.0;
+        // marker2.color.g = 0.0;
+        // marker2.color.b = 1.0;
+        marker2.color.a = 0.5;
         marker2.color.r = 1.0;
-        marker2.color.g = 0.0;
-        marker2.color.b = 1.0;
+        marker2.color.g = 1.0;
+        marker2.color.b = 0.0;
+
 
 
         for (const auto& point : frontiers) {
