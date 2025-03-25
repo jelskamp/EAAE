@@ -37,7 +37,8 @@
 
 
 
-    <!-- Publish static transforms -->
+    <!-- Publish static transforms   -->
+    <!-- uav tf broad publishises DOUBLE ?????? todo: check -->
     <node pkg="agiros" type="uav_tf_broadcast" name="base_link_to_world" output="screen">
         <param name="odom_topic" value="/kingfisher/agiros_pilot/state"/>
     </node>

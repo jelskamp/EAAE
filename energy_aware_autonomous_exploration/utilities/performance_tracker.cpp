@@ -41,13 +41,13 @@ public:
             file << "Time,Explored Area (%)\n";
             file.close();
         }
-        ROS_INFO("");
-        ROS_INFO("");
-        ROS_INFO("ExplorationTracker initialized. Logging to: %s", log_file_path.c_str());
-        ROS_INFO("");
-        ROS_INFO("");
-        ROS_INFO("");
-        ROS_INFO("");
+        // ROS_INFO("");
+        // ROS_INFO("");
+        // ROS_INFO("ExplorationTracker initialized. Logging to: %s", log_file_path.c_str());
+        // ROS_INFO("");
+        // ROS_INFO("");
+        // ROS_INFO("");
+        // ROS_INFO("");
     }
 
     void octomapCallback(const octomap_msgs::Octomap::ConstPtr& msg) {
@@ -81,20 +81,20 @@ public:
         // Calculate exploration percentage
         double explored_percentage = (explored_voxels / static_cast<double>(total_xy_voxels)) * 100.0;
         double elapsed_time = (ros::Time::now() - start_time).toSec();
-        ROS_INFO("");
-        ROS_INFO("");
-        ROS_INFO("");
-        ROS_INFO("Logging data: Time: %.2f sec, Explored: %.2f%%", elapsed_time, explored_percentage);
-        ROS_INFO("");
-        ROS_INFO("");
+        // ROS_INFO("");
+        // ROS_INFO("");
+        // ROS_INFO("");
+        // ROS_INFO("Logging data: Time: %.2f sec, Explored: %.2f%%", elapsed_time, explored_percentage);
+        // ROS_INFO("");
+        // ROS_INFO("");
 
 
         // Log data
-        logData(elapsed_time, explored_percentage);
+        // logData(elapsed_time, explored_percentage);
 
 
         // Plot data if X% is explored (plot builds up over time)
-        if (explored_percentage >= 50) {
+        if (explored_percentage >= 20) {
             ROS_INFO("");
             ROS_INFO("");
             ROS_INFO("......... PLOT MADE .............");
