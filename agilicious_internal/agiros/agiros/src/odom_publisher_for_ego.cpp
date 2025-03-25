@@ -37,10 +37,10 @@ int main(int argc, char** argv) {
             // Publish the message
             odom_pub.publish(odom_msg);
 
-            ROS_INFO("Published Odometry: x=%.2f, y=%.2f, z=%.2f",
-                     odom_msg.pose.pose.position.x,
-                     odom_msg.pose.pose.position.y,
-                     odom_msg.pose.pose.position.z);
+            // ROS_INFO("Published Odometry: x=%.2f, y=%.2f, z=%.2f",
+            //          odom_msg.pose.pose.position.x,
+            //          odom_msg.pose.pose.position.y,
+            //          odom_msg.pose.pose.position.z);
         } catch (tf::TransformException &ex) {
             ROS_WARN("TF lookup failed: %s", ex.what());
         }

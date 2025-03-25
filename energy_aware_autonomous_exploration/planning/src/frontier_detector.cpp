@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <geometry_msgs/PoseStamped.h>
 #include <random>  
-
+#include <agiros_msgs/QuadState.h>
 
 #include <std_msgs/Bool.h>
 
@@ -338,7 +338,7 @@ public:
 
     
     
-    void uavPositionCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
+    void uavPositionCallback(const agiros_msgs::QuadState::ConstPtr &msg) {
         uav_x = msg->pose.position.x;
         uav_y = msg->pose.position.y;
         uav_z = msg->pose.position.z;

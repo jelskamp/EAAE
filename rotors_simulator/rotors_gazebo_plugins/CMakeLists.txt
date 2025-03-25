@@ -9,8 +9,12 @@
 #                                               if BUILD_MAVLINK_INTERFACE_PLUGIN=TRUE.
 # NO_ROS                            bool    Build without any ROS dependencies.
 
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.5.0)
 project(rotors_gazebo_plugins)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+add_compile_options(-std=c++17)
 
 #
 #if ( ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR} )

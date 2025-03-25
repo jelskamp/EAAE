@@ -7,7 +7,7 @@
     
 
     <node pkg="octomap_server" type="octomap_server_node" name="octomap_server">
-        <param name="resolution" value="0.5"/>
+        <param name="resolution" value="0.1"/>
         <param name="frame_id" value="world"/>     
         <param name="base_frame_id" value="/$(arg quad_name)/base_link"/> 
         <!-- BELOW TRUE< CHECK FALSE (SUPPOSEDLY BETTTER FORLARGE MAPS -->
@@ -74,8 +74,3 @@
 
 
 </launch>
-
-
-
-
-
