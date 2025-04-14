@@ -16,6 +16,37 @@ git clone https://github.com/jelskamp/EAAE.git
 catkin build --force-cmake
 ```
 
+NEW:
+Clone project into caktin ws
+
+(TODO ensure ego_planner is in repo)
+
+install dependencies:
+
+ros-noetic-octomap*
+
+ros-noetic-mavlink
+
+$ sudo apt install libgoogle-glog-dev 
+$ sudo apt-get install libgflags-dev
+$ sudo apt install libgoogle-glog-dev
+$ sudo apt-get install protobuf-compiler libprotobuf-dev
+-------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 To launch simulation use agisim.launch. (This automatically starts gazebo, spawns kingfisher UAV including depth camera)
 
 ```
