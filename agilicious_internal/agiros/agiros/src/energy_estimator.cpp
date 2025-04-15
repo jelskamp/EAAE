@@ -110,18 +110,14 @@ private:
             ref.state.a() << sp.state.acceleration.linear.x,
                             sp.state.acceleration.linear.y,
                             sp.state.acceleration.linear.z;
-'
-'
+
+
             // Dummy values req. for Agilcious ???
             ref.input.collective_thrust = 9.81;
             ref.input.omega.setZero();
             ref.input.t = agi_cmd_.t;
 
-            references.push_back(ref);
-        }
-
-        // Loop through each reference state and simulate
-        for (const auto& ref : references) {
+            
             agi::SetpointVector setpoints;
 
             // Call the GEO controller to get a command for this reference ref for current state aqi_quad_state and ouput as setpoints pointer
