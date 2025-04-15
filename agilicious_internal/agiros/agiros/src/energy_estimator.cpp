@@ -154,14 +154,12 @@ private:
             
 
             // !!!!!  TODO: How to get the exact energy from quad state?
-            total_energy_ += agi_quad_state_.getEnergyConsumed();
-
-    
+            total_energy_ += agi_quad_state_.mot.power(3).sum / 1E9
+                
 
 
         }
 
-        total_energy = agi_quad_state_.e
         
         // Pub energy topic 
         std_msgs::Float64 energy_msg;
