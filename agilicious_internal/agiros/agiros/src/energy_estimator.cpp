@@ -69,18 +69,7 @@ private:
         agi_cmd_.collective_thrust = pi_act_[0];     // Thrust input
         agi_cmd_.omega = pi_act_.segment<3>(1);      // Body rates (roll/pitch/yaw rate)
 
-        // Validate command: if invalid, set safe default
-        if (!agi_cmd_.valid()) {
-        agi_cmd_.t = 0;
-        agi_cmd_.collective_thrust = 9.81;
-        agi_cmd_.omega.setZero();
-        }
-
-        // Call the simulator to apply this command for one time step
-        if (!agi_simulator_->run(agi_cmd_, sim_dt_)) {
-        ROS_ERROR("Simulator step failed.");
-        return false;
-        }
+    
 
         // Get the new quadrotor state after simulation
         agi_simulator_->getState(&agi_quad_state_);
@@ -140,29 +129,40 @@ private:
 
 
             // Get the first command (but isnt there only one??
-            agi::Command command_geo = setpoints.front().input;
+            // agi::Command command_geo = setpoints.front().input;
+            agi::Command agi_cmd = setpoints.front().input;
 
 
 
-            // Convert the command into a 4D Eigen vector (required for step()) Correct??
-            Eigen::Vector4d control_input;
-            control_input[0] = command_geo.collective_thrust;
-            control_input.segment<3>(1) = command_geo.omega;
 
-
-            // Run the simulator for one time step using the command
-            if (!step(control_input)) {
-            ROS_WARN("Simulation failed mid-trajectory.");
-            break;
+                // Validate command: if invalid, set safe default
+            if (!agi_cmd_.valid()) {
+            agi_cmd_.t = 0;
+            agi_cmd_.collective_thrust = 9.81;
+            agi_cmd_.omega.setZero();
+            }
+    
+            // Call the simulator to apply this command for one time step
+            if (!agi_simulator_->run(agi_cmd_, sim_dt_)) {
+            ROS_ERROR("Simulator step failed.");
+            return false;
             }
 
+            agi.cmd.t += sim_dt_;
+
+            agi_simulator_->getState(&agi_quad_state_);
+            
 
             // !!!!!  TODO: How to get the exact energy from quad state?
-            total_energy_ += agi_quad_state_.getEnergyConsumed(); 
+            total_energy_ += agi_quad_state_.getEnergyConsumed();
+
+    
 
 
         }
 
+        total_energy = agi_quad_state_.e
+        
         // Pub energy topic 
         std_msgs::Float64 energy_msg;
         energy_msg.data = total_energy_;
