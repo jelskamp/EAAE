@@ -9,6 +9,73 @@
 #include <Eigen/Dense>                  
 
 
+// Includes for simulator
+#include <agi/core/simulator_params.h>     // For SimulatorParams
+#include <boost/filesystem.hpp>            // For fs::path
+
+
+// Includes for controller
+#include <agilib/controller/geometric/geometric_controller.hpp>
+#include <agilib/controller/geometric/geo_params.hpp>
+#include <agilib/types/quadrotor.hpp>
+#include <agilib/base/yaml.hpp>
+
+
+namespace fs = boost::filesystem;
+
+
+
+static inline agi::SimulatorParams loadSimulatorParams(const ros::NodeHandle& nh) {
+    std::string simulator_config;
+    std::string agi_param_dir;
+    std::string ros_param_dir;
+
+    const bool got_config = nh.getParam("simulator_config", simulator_config);
+    const bool got_directory = nh.getParam("agi_param_dir", agi_param_dir);
+    nh.getParam("ros_param_dir", ros_param_dir);
+
+    if (!got_config || !got_directory) {
+        ROS_FATAL("Missing simulator_config or agi_param_dir parameter!");
+        ros::shutdown();
+    }
+
+    ROS_INFO_STREAM("Simulator Config: " << simulator_config);
+    ROS_INFO_STREAM("Agi Param Dir:    " << agi_param_dir);
+    ROS_INFO_STREAM("ROS Param Dir:    " << ros_param_dir);
+
+    return agi::SimulatorParams(fs::path(ros_param_dir) / fs::path(simulator_config),
+                                agi_param_dir, ros_param_dir);
+}
+
+
+static inline std::shared_ptr<GeometricControllerParams> loadGeoParams(const ros::NodeHandle& nh) {
+    std::string controller_config;
+    std::string agi_param_dir;
+    std::string ros_param_dir;
+
+    nh.getParam("controller_config", controller_config);
+    nh.getParam("agi_param_dir", agi_param_dir);
+    nh.getParam("ros_param_dir", ros_param_dir);
+
+    ROS_INFO_STREAM("Controller Config: " << controller_config);
+    ROS_INFO_STREAM("Agi Param Dir:     " << agi_param_dir);
+    ROS_INFO_STREAM("ROS Param Dir:     " << ros_param_dir);
+
+    std::string full_path = (fs::path(ros_param_dir) / fs::path(controller_config)).string();
+
+    Yaml yaml(full_path);
+    auto geo_params = std::make_shared<GeometricControllerParams>();
+    geo_params->load(yaml);
+    return geo_params;
+}
+
+
+
+static inline std::shared_ptr<Quadrotor> loadQuad(const ros::NodeHandle& nh) {
+    std::string controller_config;
+
+
+}
 
 
 
@@ -30,15 +97,30 @@ public:
 
 
 
-        // TODO: Create instances of the controller and simulator , like this?? (shared_ptr?)
-        controller_geo_ = std::make_shared<agi::GeometricController>();
-        agi_simulator_ = std::make_shared<agi::SimulatorBase>();
+
+        // TODO: check with Leonard if implementation is correct 
+        agi::SimulatorParams sim_params = loadSimulatorParams(nh_);     //load params
+        agi_simulator_ = std::make_shared<agi::SimulatorBase>(sim_params);    //create sim instance
+
+
+        // TODO: Create instances of the controller (ask Leonard)
+        auto geo_params = loadGeoParams(nh_);           //load controller params
+        agi::Quadrotor quad(sim_params.quad_params);        // Correct?! create quad from loaded sim params?
+        controller_geo_ = std::make_shared<agi::GeometricController>(quad, geo_params);    //create geo controloer instance
+
+
+
+
+
+
 
 
 
         // Initialise command time to zero
         agi_cmd_.t = 0.0;
     }
+
+
 
 private:
     // ROS communication tools
@@ -47,8 +129,8 @@ private:
     ros::Publisher energy_pub_;         
 
     // Agilicious components    > here/public, shared_ptr / make_shared
-    std::shared_ptr<agi::GeometricController> controller_geo_; // Control logic
     std::shared_ptr<agi::SimulatorBase> agi_simulator_;         // Simulates physics
+    std::shared_ptr<agi::GeometricController> controller_geo_; // Control logic
 
     
     // Simulator state and input
@@ -56,7 +138,7 @@ private:
     agi::QuadState agi_quad_state_;     // Current simulated state of the drone
 
     // Timing and tracking
-    double sim_dt_;                     // Simulation time step (in sec)
+    double sim_dt_;                     // Simulation dt (in sec)
     double total_energy_;               // Total energy accumulated per trajectory
 
 
@@ -131,17 +213,17 @@ private:
 
 
 
-                // Validate command: if invalid, set safe default
+            // Validate command: if invalid, set safe default
             if (!agi_cmd_.valid()) {
-            agi_cmd_.t = 0;
-            agi_cmd_.collective_thrust = 9.81;
-            agi_cmd_.omega.setZero();
+                agi_cmd_.t = 0;
+                agi_cmd_.collective_thrust = 9.81;
+                agi_cmd_.omega.setZero();
             }
     
             // Call the simulator to apply this command for one time step
-            if (!agi_simulator_->run(agi_cmd_, sim_dt_)) {
-            ROS_ERROR("Simulator step failed.");
-            return false;
+            if (!agi_simulator_->run(agi_cmd, sim_dt_)) {
+                ROS_ERROR("Simulator step failed.");
+                return; //exit early if sim fails
             }
 
             agi.cmd.t += sim_dt_;
@@ -171,9 +253,7 @@ private:
 int main(int argc, char** argv) {
     ros::init(argc, argv, "energy_sim_node"); 
     ros::NodeHandle nh;                       
-
     EnergySimNode node(nh);                   
-
     ros::spin();                              
     return 0;
 }
