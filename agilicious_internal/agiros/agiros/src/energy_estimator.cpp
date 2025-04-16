@@ -71,13 +71,6 @@ static inline std::shared_ptr<GeometricControllerParams> loadGeoParams(const ros
 
 
 
-static inline std::shared_ptr<Quadrotor> loadQuad(const ros::NodeHandle& nh) {
-    std::string controller_config;
-
-
-}
-
-
 
 
 
