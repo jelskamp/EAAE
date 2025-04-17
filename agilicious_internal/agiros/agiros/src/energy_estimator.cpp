@@ -95,7 +95,6 @@ public:
 
 
 
-
         // TODO: check with Leonard if implementation is correct 
         agi::SimulatorParams sim_params = loadSimulatorParams(nh_);     //load params
         // agi_simulator_ = std::make_shared<agi::SimulatorBase>(sim_params);    //create sim instance
@@ -107,23 +106,14 @@ public:
 
         // TODO: Create instances of the controller (ask Leonard)
         auto geo_params = loadGeoParams(nh_);           //load controller params
-        // agi::Quadrotor quad(sim_params.quad_params);        // Correct?! create quad from loaded sim params?
-        
-        // option1???
-        // agi::QuadrotorSimulator sim(geo_params);
-        // option2???
+    
+
         agi::QuadrotorSimulator sim(sim_params);
         agi::Quadrotor quad = sim.getQuadrotor();
         
         
         
         controller_geo_ = std::make_shared<agi::GeometricController>(quad, geo_params);    //create geo controloer instance
-
-
-
-
-
-
 
 
 
@@ -151,7 +141,7 @@ private:
     agi::Command agi_cmd_;              // Last control command
     agi::QuadState agi_quad_state_;     // Current simulated state of the drone
 
-    // Timing and tracking
+
     double sim_dt_;                     // Simulation dt (in sec)
     double total_energy_;               // Total energy accumulated per trajectory
 
@@ -197,35 +187,7 @@ private:
                                 sp.state.pose.orientation.z);
             ref.state.q(q); // Set orientation in the reference state
 
-            // Set velocity vector
-            // ref.state.v() << sp.state.velocity.linear.x,
-            //                 sp.state.velocity.linear.y,
-            //                 sp.state.velocity.linear.z;
-
-            // Set acceleration 
-            // ref.state.a() << sp.state.acceleration.linear.x,
-            //                 sp.state.acceleration.linear.y,
-            //                 sp.state.acceleration.linear.z;
-
-
-
-
-            // OPTION 2
-            // ref.state.p(Vector3d(
-            //     sp.state.pose.position.x,
-            //     sp.state.pose.position.y,
-            //     sp.state.pose.position.z));
-            
-            // ref.state.v(Vector3d(
-            //     sp.state.velocity.linear.x,
-            //     sp.state.velocity.linear.y,
-            //     sp.state.velocity.linear.z));
-            
-            // ref.state.a(Vector3d(
-            //     sp.state.acceleration.linear.x,
-            //     sp.state.acceleration.linear.y,
-            //     sp.state.acceleration.linear.z));
-            
+ 
 
             ref.state.p = Eigen::Vector3d(sp.state.pose.position.x,
                             sp.state.pose.position.y,
@@ -241,10 +203,6 @@ private:
 
                 
 
-
-
-
-            // Dummy values req. for Agilcious ???
             ref.input.collective_thrust = 9.81;
             ref.input.omega.setZero();
             ref.input.t = agi_cmd_.t;
@@ -262,7 +220,6 @@ private:
 
 
 
-
             // Validate command: if invalid, set safe default
             if (!agi_cmd_.valid()) {
                 agi_cmd_.t = 0;
@@ -275,13 +232,6 @@ private:
                 ROS_ERROR("Simulator step failed.");
                 return; //exit early if sim fails
             }
-            // agi_simulator_->setCommand(agi_cmd);
-            // if (!agi_simulator_->run(sim_dt_)) {
-            //     ROS_ERROR("Simulator step failed.");
-            //     return; // exit early if sim fails
-            // }
-
-
 
 
 
@@ -295,8 +245,6 @@ private:
             total_energy_ += agi_quad_state_.mot.array().pow(3).sum() / 1E9;
 
                 
-
-
         }
 
         
