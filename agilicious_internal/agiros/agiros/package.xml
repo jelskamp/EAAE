@@ -29,6 +29,10 @@
   <depend>gazebo_ros</depend>
   <!-- ADDED BY ME FOR TF BROADCAST -->
   <depend>tf</depend>
+
+
+  <!-- <depend>libboost-filesystem-dev</depend> -->
+
   
 
 </package>

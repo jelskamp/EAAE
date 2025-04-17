@@ -64,8 +64,24 @@
     </group>
 
 
+
     <!-- Node for odom publishing used in ego-planner -->
     <node pkg="agiros" type="odom_publisher_for_ego" name="odom_publisher" output="screen"/>
+
+    <!-- Node for pre-running trajectories and corresponding energy calucation -->
+    <!-- <node pkg="agiros" type="energy_estimator_node" name="energy_estimator" output="screen"/> -->
+
+    <!-- <group ns="$(arg quad_name)">
+        <node pkg="agiros" type="energy_estimator_node" name="energy_estimator" output="screen">
+            <param name="agi_param_dir" value="$(find agilib)/params"/>
+            <param name="simulator_config" value="simulation.yaml"/>
+        </node>
+    </group> -->
+    <node pkg="agiros" type="energy_estimator_node" name="energy_estimator" output="screen">
+        <param name="agi_param_dir" value="$(find agilib)/params"/>
+        <param name="simulator_config" value="simulation.yaml"/>
+        <param name="ros_param_dir" value="$(find agiros)/parameters"/>
+    </node>
 
 
 

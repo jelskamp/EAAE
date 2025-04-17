@@ -173,6 +173,9 @@ cs_add_executable(odom_publisher_for_ego src/odom_publisher_for_ego.cpp)
 target_link_libraries(odom_publisher_for_ego ${catkin_LIBRARIES})
 
 
+# Energy Estimator Node
+cs_add_executable(energy_estimator_node src/energy_estimator.cpp)
+target_link_libraries(energy_estimator_node ros_pilot)
 
 
 

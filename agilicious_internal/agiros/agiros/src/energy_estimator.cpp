@@ -6,22 +6,27 @@
 #include <agiros_msgs/QuadState.h>      // Holds pose, velocity, acceleration
 #include <agiros_msgs/Command.h>        // Holds control command info 
 
-#include <Eigen/Dense>                  
+#include <Eigen/Dense>     
+
+using Eigen::Vector3d;
 
 
 // Includes for simulator
-#include <agi/core/simulator_params.h>     // For SimulatorParams
+// #include <agi/core/simulator_params.h>     // For SimulatorParams
+#include "agiros/agisim.hpp"
+
+
 #include <boost/filesystem.hpp>            // For fs::path
 
 
 // Includes for controller
-#include <agilib/controller/geometric/geometric_controller.hpp>
+#include <agilib/controller/geometric/controller_geo.hpp>
 #include <agilib/controller/geometric/geo_params.hpp>
 #include <agilib/types/quadrotor.hpp>
-#include <agilib/base/yaml.hpp>
+// #include <agilib/base/yaml.hpp>
 
 
-namespace fs = boost::filesystem;
+// namespace fs = boost::filesystem;
 
 
 
@@ -48,7 +53,7 @@ static inline agi::SimulatorParams loadSimulatorParams(const ros::NodeHandle& nh
 }
 
 
-static inline std::shared_ptr<GeometricControllerParams> loadGeoParams(const ros::NodeHandle& nh) {
+static inline std::shared_ptr<agi::GeometricControllerParams> loadGeoParams(const ros::NodeHandle& nh) {
     std::string controller_config;
     std::string agi_param_dir;
     std::string ros_param_dir;
@@ -63,8 +68,8 @@ static inline std::shared_ptr<GeometricControllerParams> loadGeoParams(const ros
 
     std::string full_path = (fs::path(ros_param_dir) / fs::path(controller_config)).string();
 
-    Yaml yaml(full_path);
-    auto geo_params = std::make_shared<GeometricControllerParams>();
+    agi::Yaml yaml(full_path);
+    auto geo_params = std::make_shared<agi::GeometricControllerParams>();
     geo_params->load(yaml);
     return geo_params;
 }
@@ -93,12 +98,25 @@ public:
 
         // TODO: check with Leonard if implementation is correct 
         agi::SimulatorParams sim_params = loadSimulatorParams(nh_);     //load params
-        agi_simulator_ = std::make_shared<agi::SimulatorBase>(sim_params);    //create sim instance
+        // agi_simulator_ = std::make_shared<agi::SimulatorBase>(sim_params);    //create sim instance
+        // OR??:
+        agi_simulator_ = std::make_shared<agi::QuadrotorSimulator>(sim_params);
+
+
 
 
         // TODO: Create instances of the controller (ask Leonard)
         auto geo_params = loadGeoParams(nh_);           //load controller params
-        agi::Quadrotor quad(sim_params.quad_params);        // Correct?! create quad from loaded sim params?
+        // agi::Quadrotor quad(sim_params.quad_params);        // Correct?! create quad from loaded sim params?
+        
+        // option1???
+        // agi::QuadrotorSimulator sim(geo_params);
+        // option2???
+        agi::QuadrotorSimulator sim(sim_params);
+        agi::Quadrotor quad = sim.getQuadrotor();
+        
+        
+        
         controller_geo_ = std::make_shared<agi::GeometricController>(quad, geo_params);    //create geo controloer instance
 
 
@@ -122,7 +140,10 @@ private:
     ros::Publisher energy_pub_;         
 
     // Agilicious components    > here/public, shared_ptr / make_shared
-    std::shared_ptr<agi::SimulatorBase> agi_simulator_;         // Simulates physics
+    // std::shared_ptr<agi::SimulatorBase> agi_simulator_;         // Simulates physics
+    // or?:
+    std::shared_ptr<agi::QuadrotorSimulator> agi_simulator_;
+    
     std::shared_ptr<agi::GeometricController> controller_geo_; // Control logic
 
     
@@ -165,9 +186,9 @@ private:
             agi::Setpoint ref;
 
             // Extract position
-            ref.state.p() << sp.state.pose.position.x,
-                            sp.state.pose.position.y,
-                            sp.state.pose.position.z;
+            // ref.state.p() << sp.state.pose.position.x,
+            //                 sp.state.pose.position.y,
+            //                 sp.state.pose.position.z;
 
             // Extract orientation 
             Eigen::Quaterniond q(sp.state.pose.orientation.w,
@@ -177,14 +198,50 @@ private:
             ref.state.q(q); // Set orientation in the reference state
 
             // Set velocity vector
-            ref.state.v() << sp.state.velocity.linear.x,
-                            sp.state.velocity.linear.y,
-                            sp.state.velocity.linear.z;
+            // ref.state.v() << sp.state.velocity.linear.x,
+            //                 sp.state.velocity.linear.y,
+            //                 sp.state.velocity.linear.z;
 
             // Set acceleration 
-            ref.state.a() << sp.state.acceleration.linear.x,
+            // ref.state.a() << sp.state.acceleration.linear.x,
+            //                 sp.state.acceleration.linear.y,
+            //                 sp.state.acceleration.linear.z;
+
+
+
+
+            // OPTION 2
+            // ref.state.p(Vector3d(
+            //     sp.state.pose.position.x,
+            //     sp.state.pose.position.y,
+            //     sp.state.pose.position.z));
+            
+            // ref.state.v(Vector3d(
+            //     sp.state.velocity.linear.x,
+            //     sp.state.velocity.linear.y,
+            //     sp.state.velocity.linear.z));
+            
+            // ref.state.a(Vector3d(
+            //     sp.state.acceleration.linear.x,
+            //     sp.state.acceleration.linear.y,
+            //     sp.state.acceleration.linear.z));
+            
+
+            ref.state.p = Eigen::Vector3d(sp.state.pose.position.x,
+                            sp.state.pose.position.y,
+                            sp.state.pose.position.z);
+
+            ref.state.v = Eigen::Vector3d(sp.state.velocity.linear.x,
+                            sp.state.velocity.linear.y,
+                            sp.state.velocity.linear.z);
+
+            ref.state.a = Eigen::Vector3d(sp.state.acceleration.linear.x,
                             sp.state.acceleration.linear.y,
-                            sp.state.acceleration.linear.z;
+                            sp.state.acceleration.linear.z);
+
+                
+
+
 
 
             // Dummy values req. for Agilcious ???
@@ -218,14 +275,25 @@ private:
                 ROS_ERROR("Simulator step failed.");
                 return; //exit early if sim fails
             }
+            // agi_simulator_->setCommand(agi_cmd);
+            // if (!agi_simulator_->run(sim_dt_)) {
+            //     ROS_ERROR("Simulator step failed.");
+            //     return; // exit early if sim fails
+            // }
 
-            agi.cmd.t += sim_dt_;
+
+
+
+
+            agi_cmd_.t += sim_dt_;
 
             agi_simulator_->getState(&agi_quad_state_);
             
 
             // !!!!!  TODO: How to get the exact energy from quad state?
-            total_energy_ += agi_quad_state_.mot.power(3).sum / 1E9
+            // total_energy_ += agi_quad_state_.mot.pow(3).sum() / 1E9;
+            total_energy_ += agi_quad_state_.mot.array().pow(3).sum() / 1E9;
+
                 
 
 
@@ -237,7 +305,15 @@ private:
         energy_msg.data = total_energy_;
         energy_pub_.publish(energy_msg);
         // Print energy for debugging
-        // ROS_INFO("Trajectory consumed %.2f J of energy", total_energy_);
+
+
+        std_msgs::Float64 test_msg;
+        test_msg.data = 42.0;
+        energy_pub_.publish(test_msg);
+        ROS_INFO("Published test energy value");
+
+
+        
     }
 };
 
@@ -245,7 +321,8 @@ private:
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "energy_sim_node"); 
-    ros::NodeHandle nh;                       
+    // ros::NodeHandle nh; 
+    ros::NodeHandle nh("~");                  
     EnergySimNode node(nh);                   
     ros::spin();                              
     return 0;
