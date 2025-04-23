@@ -42,9 +42,9 @@ static inline agi::SimulatorParams loadSimulatorParams(const ros::NodeHandle& nh
         ros::shutdown();
     }
 
-    ROS_INFO_STREAM("Simulator Config: " << simulator_config);
-    ROS_INFO_STREAM("Agi Param Dir:    " << agi_param_dir);
-    ROS_INFO_STREAM("ROS Param Dir:    " << ros_param_dir);
+    // ROS_INFO_STREAM("Simulator Config: " << simulator_config);
+    // ROS_INFO_STREAM("Agi Param Dir:    " << agi_param_dir);
+    // ROS_INFO_STREAM("ROS Param Dir:    " << ros_param_dir);
 
     return agi::SimulatorParams(fs::path(ros_param_dir) / fs::path(simulator_config),
                                 agi_param_dir, ros_param_dir);
@@ -60,9 +60,9 @@ static inline std::shared_ptr<agi::GeometricControllerParams> loadGeoParams(cons
     nh.getParam("agi_param_dir", agi_param_dir);
     nh.getParam("ros_param_dir", ros_param_dir);
 
-    ROS_INFO_STREAM("Controller Config: " << controller_config);
-    ROS_INFO_STREAM("Agi Param Dir:     " << agi_param_dir);
-    ROS_INFO_STREAM("ROS Param Dir:     " << ros_param_dir);
+    // ROS_INFO_STREAM("Controller Config: " << controller_config);
+    // ROS_INFO_STREAM("Agi Param Dir:     " << agi_param_dir);
+    // ROS_INFO_STREAM("ROS Param Dir:     " << ros_param_dir);
 
 
     fs::path full_path = fs::path(agi_param_dir) / fs::path(controller_config);
@@ -116,9 +116,7 @@ public:
         agi_quad_state_.p.setZero();
         agi_quad_state_.v.setZero();
         agi_quad_state_.a.setZero();
-        // agi_quad_state_.q() = Eigen::Quaterniond::Identity(); 
         agi_quad_state_.q(Eigen::Quaterniond::Identity());
-
         agi_quad_state_.w.setZero();
         agi_quad_state_.tau.setZero();
         agi_quad_state_.j.setZero();
@@ -143,11 +141,7 @@ private:
     ros::Subscriber traj_sub_;          
     ros::Publisher energy_pub_;         
 
-    // Agilicious components    > here/public, shared_ptr / make_shared
-    // std::shared_ptr<agi::SimulatorBase> agi_simulator_;         // Simulates physics
-    // or?:
     std::shared_ptr<agi::QuadrotorSimulator> agi_simulator_;
-    
     std::shared_ptr<agi::GeometricController> controller_geo_; // Control logic
 
     
@@ -160,28 +154,27 @@ private:
     double total_energy_;               // Total energy accumulated per trajectory
 
 
-    // Function to run a single simulator step
-    bool step(const Eigen::Vector4d& pi_act_) {
-        // Update simulation time
-        agi_cmd_.t += sim_dt_;
 
-        // Copy control input to command structure
-        agi_cmd_.collective_thrust = pi_act_[0];     // Thrust input
-        agi_cmd_.omega = pi_act_.segment<3>(1);      // Body rates (roll/pitch/yaw rate)
+    // Function to run a single simulator step > NOT REQUIRED ANY MORE?! --------
+    // bool step(const Eigen::Vector4d& pi_act_) {
+    //     // Update simulation time
+    //     agi_cmd_.t += sim_dt_;
 
-    
+    //     // Copy control input to command structure
+    //     agi_cmd_.collective_thrust = pi_act_[0];     // Thrust input
+    //     agi_cmd_.omega = pi_act_.segment<3>(1);      // Body rates (roll/pitch/yaw rate)
 
-        // Get the new quadrotor state after simulation
-        agi_simulator_->getState(&agi_quad_state_);
-        return true;
-    }
+    //     // Get the new quadrotor state after simulation
+    //     agi_simulator_->getState(&agi_quad_state_);
+    //     return true;
+    // }
+    // ---------------------------------------------------------------------------
 
 
 
     // This function is triggered when a trajectory message is received
     void trajectoryCallback(const agiros_msgs::Reference::ConstPtr& msg) {
         total_energy_ = 0.0;                        // Reset energy count
-
         agi::SetpointVector references;             // Store all waypoints
 
 
@@ -189,10 +182,6 @@ private:
         for (const auto& sp : msg->points) {
             agi::Setpoint ref;
 
-            // Extract position
-            // ref.state.p() << sp.state.pose.position.x,
-            //                 sp.state.pose.position.y,
-            //                 sp.state.pose.position.z;
 
             // Extract orientation 
             Eigen::Quaterniond q(sp.state.pose.orientation.w,
@@ -200,8 +189,6 @@ private:
                                 sp.state.pose.orientation.y,
                                 sp.state.pose.orientation.z);
             ref.state.q(q); // Set orientation in the reference state
-
- 
 
             ref.state.p = Eigen::Vector3d(sp.state.pose.position.x,
                             sp.state.pose.position.y,
@@ -215,7 +202,6 @@ private:
                             sp.state.acceleration.linear.y,
                             sp.state.acceleration.linear.z);
 
-                
 
             ref.input.collective_thrust = 9.81;
             ref.input.omega.setZero();
@@ -225,64 +211,14 @@ private:
             agi::SetpointVector setpoints;
 
 
-            // ref.state.t = 0;
-            // ref.state.p = Eigen::Vector3d(0,0,0);
-            // ref.state.v = Eigen::Vector3d(0,0,0);
-            // ref.state.a = Eigen::Vector3d(0,0,0);
-            ref.state.w = Eigen::Vector3d(0,0,0);
-            ref.state.tau = Eigen::Vector3d(0,0,0);
-            ref.state.ba = Eigen::Vector3d(0,0,0);
-            ref.state.bw = Eigen::Vector3d(0,0,0);
-            ref.state.j = Eigen::Vector3d(0,0,0);;
-            ref.state.s = Eigen::Vector3d(0,0,0);;
-            ref.state.mot = Eigen::Vector4d(0,0,0,0);
-            ref.state.motdes = Eigen::Vector4d(0,0,0,0);
-
-
-
-            ref.state.t = 0.0;                          // Timestamp
-            ref.state.w.setZero();                      // Angular velocity
-            ref.state.tau.setZero();                    // Angular acceleration / torque
-            ref.state.ba.setZero();                     // Accelerometer bias
-            ref.state.bw.setZero();                     // Gyroscope bias
-            ref.state.j.setZero();                      // Jerk
-            ref.state.s.setZero();                      // Snap
-            ref.state.mot.setZero();                    // Motor speeds
-            ref.state.motdes.setZero();                 // Desired motor speeds
-            // ref.state.q_m.setIdentity();                // Measurement quaternion (if used)
-            // ref.state.p_m.setZero();                    // Measured position
-            // ref.state.v_m.setZero();                    // Measured velocity
-            // ref.state.a_m.setZero();                    // Measured acceleration
-            // ref.state.ba_m.setZero();                   // Measured accel bias
-            // ref.state.bw_m.setZero();                   // Measured gyro bias
-            // ref.state.j_m.setZero();                    // Measured jerk
-            // ref.state.s_m.setZero();                    // Measured snap
-            // ref.state.mot_m.setZero();                  // Measured motor speeds
-            ref.state.q() = q.normalized();             // Ensure unit quaternion
-
-
-
-
-            ROS_WARN_STREAM("Debug QuadState:");
-            ROS_WARN_STREAM("  t: " << ref.state.t);
-            ROS_WARN_STREAM("  p: " << ref.state.p);
-            ROS_WARN_STREAM("  v: " << ref.state.v);
-            ROS_WARN_STREAM("  a: " << ref.state.a);
-            // ROS_WARN_STREAM("  q: " << ref.state.q);
-            ROS_WARN_STREAM("  w: " << ref.state.w);
-            ROS_WARN_STREAM("  ba: " << ref.state.ba);
-            ROS_WARN_STREAM("  bw: " << ref.state.bw);
-            ROS_WARN_STREAM("  j: " << ref.state.j);
-            ROS_WARN_STREAM("  s: " << ref.state.s);
-            ROS_WARN_STREAM("  mot: " << ref.state.mot);
-
-            ROS_WARN_STREAM("AGI QUAD STATE: " << agi_quad_state_);
+            // DEBUG STATEMENT to validate quad state
+            // ROS_WARN_STREAM("AGI QUAD STATE: " << agi_quad_state_);
             
+
             // Call the GEO controller to get a command for this reference ref for current state aqi_quad_state and ouput as setpoints pointer
             controller_geo_->getCommand(agi::QuadState(agi_quad_state_), {ref}, &setpoints);
 
             agi::Command agi_cmd = setpoints.front().input;
-
 
 
             // Validate command: if invalid, set safe default
@@ -292,18 +228,11 @@ private:
                 agi_cmd_.omega.setZero();
                 ROS_ERROR("Agi command not valid.");
             }
-    
             // Call the simulator to apply this command for one time step
             if (!agi_simulator_->run(agi_cmd, sim_dt_)) {
                 ROS_ERROR("Simulator step failed.");
                 return; //exit early if sim fails
             }
-
-            if (!agi_quad_state_.mot.allFinite()) {
-                ROS_WARN("Skipping setpoint due to NaN motor values");
-                continue;
-            }
-            
 
 
             agi_cmd_.t += sim_dt_;
@@ -311,10 +240,9 @@ private:
             agi_simulator_->getState(&agi_quad_state_);
             
 
-            // !!!!!  TODO: How to get the exact energy from quad state?
+            // !!!!!  TODO:  get the energy from quad state
             // total_energy_ += agi_quad_state_.mot.pow(3).sum() / 1E9;
             total_energy_ += agi_quad_state_.mot.array().pow(3).sum() / 1E9;
-            // total_energy_ = 10;
                 
         }
 
@@ -322,11 +250,7 @@ private:
         std_msgs::Float64 energy_msg;
         energy_msg.data = total_energy_;
         energy_pub_.publish(energy_msg);
-        // Print energy for debugging
 
-
-
-        
     }
 };
 
