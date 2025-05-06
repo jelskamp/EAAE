@@ -88,7 +88,7 @@ public:
             total_energy_(0.0)           
     {
         // Subscribe to the trajectory topic (from Moji's global planner)
-        traj_sub_ = nh_.subscribe("/kingfisher/agiros_pilot/trajectory", 1, &EnergySimNode::trajectoryCallback, this);
+        traj_sub_ = nh_.subscribe("/kingfisher/agiros_pilot/2trajectory", 1, &EnergySimNode::trajectoryCallback, this);
 
         // Publish energy consumed for trajectory
         energy_pub_ = nh_.advertise<std_msgs::Float64>("/energy_consumed", 1);
