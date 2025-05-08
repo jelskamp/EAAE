@@ -12,8 +12,6 @@
 #include <agiros_msgs/QuadState.h>
 
 #include <std_msgs/Bool.h>
-#include <std_msgs/Float64.h>
-
 
 // CHECK IF TRUE OR FALSE!!!
 bool waypoint_reached = true;
@@ -23,7 +21,7 @@ bool waypoint_reached = true;
 struct ClusterInfo {
     geometry_msgs::Point centroid;  // Centroid of the cluster
     int cluster_size;  // Number of points in the cluster
-    double energy_to_reach_cluster;
+    // double energy_to_reach_cluster;
 };
 
 
@@ -35,9 +33,8 @@ private:
     ros::Publisher frontier_pub2;
     ros::Subscriber uav_pos;
     ros::Subscriber waypoint_reached_sub;
-    ros::Subscriber energy_sub;
-    ros::Publisher pot_target_pub;
-    ros::Publisher best_waypoint_pub;
+    // ros::Subscriber energy_sub;
+    // ros::Publisher pot_target_pub
     double resolution;
 
     std::vector<ClusterInfo> last_valid_clusters;
@@ -46,14 +43,16 @@ private:
     double uav_y = 0.0;
     double uav_z = 0.0;
 
-    std::vector<ClusterInfo> candidate_clusters_;
+    // std::vector<ClusterInfo> candidate_clusters_;
     bool energy_received_ = false;
-    double latest_energy_ = 0.0;
+    // double latest_energy_ = 0.0;
 
 
     
 public:
     FrontierDetector() {
+
+        // CONT. SUBSCRIBER (WORKS)
         octomap_sub = nh.subscribe("/octomap_binary", 1, &FrontierDetector::octomapCallback, this);
 
         frontier_pub = nh.advertise<visualization_msgs::MarkerArray>("/frontier_markers", 1);
@@ -63,11 +62,9 @@ public:
 
         waypoint_reached_sub = nh.subscribe("/waypoint_reached", 10, &FrontierDetector::waypointReachedCallback, this);
 
-        energy_sub = nh.subscribe("/energy_consumed", 1, &FrontierDetector::energyCallback, this);
-        pot_target_pub = nh.advertise<geometry_msgs::PoseStamped>("/pot_target", 1); 
+        // energy_sub = nh.subscribe("/energy_consumed", 1, &FrontierDetector::energyCallback, this);
+        // pot_target_pub = nh.advertise<geometry_msgs::PoseStamped>("/pot_target", 1); 
 
-        best_waypoint_pub = nh.advertise<geometry_msgs::PoseStamped>("/best_waypoint", 10);
-        
     }
 
 
@@ -245,6 +242,12 @@ public:
 
 
 
+
+
+
+
+
+
     // Compute the centroid of a given cluster of points
     geometry_msgs::Point computeCentroid(const std::vector<geometry_msgs::Point>& points) {
         geometry_msgs::Point centroid;
@@ -262,6 +265,7 @@ public:
 
 
 
+    
     
     void uavPositionCallback(const agiros_msgs::QuadState::ConstPtr &msg) {
         uav_x = msg->pose.position.x;
@@ -292,7 +296,6 @@ public:
     }
     
     
-
     void findAndPublishBestWaypoint(const std::vector<ClusterInfo>& cluster_infos) {
         // Check if there are any clusters
         if (cluster_infos.empty()) {
@@ -301,167 +304,21 @@ public:
         }
 
 
-        int num_candidates = 3;
-        // Copy cluster_infos so we can sort it
-        std::vector<ClusterInfo> sorted_clusters = cluster_infos;
 
-        // Sort clusters descending by size
-        std::sort(sorted_clusters.begin(), sorted_clusters.end(), 
+        // Find the largest cluster by size > LATER: taking distance into account
+        auto largest_cluster = std::max_element(cluster_infos.begin(), cluster_infos.end(), 
             [](const ClusterInfo& a, const ClusterInfo& b) {
-                return a.cluster_size > b.cluster_size;  // Larger clusters first
+                return a.cluster_size < b.cluster_size;
             }
         );
 
-        // Select top N (or all if fewer)
-        std::vector<ClusterInfo> top_clusters;
-        for (int i = 0; i < std::min(num_candidates, static_cast<int>(sorted_clusters.size())); ++i) {
-            top_clusters.push_back(sorted_clusters[i]);
-        }
-
-
-
-        //  TODO
-        for (auto& cluster : top_clusters) {
-            // Publish the centroid
-            publishPotentialTarget(cluster.centroid);
-    
-            // Wait for energy estimate
-            energy_received_ = false;
-            ros::Time start = ros::Time::now();
-            ros::Rate rate(10);
-
-
-            // Check if energy is received
-            while (!energy_received_ && (ros::Time::now() - start).toSec() < 3.0) {
-                ros::spinOnce();
-                rate.sleep();
-            }
-    
-            if (!energy_received_) {
-                ROS_WARN("No energy received for this cluster, skipping...");
-                continue;
-            }
-
 
 
     
-            // Add energy to cluster info 
-            cluster.energy_to_reach_cluster = latest_energy_;
-            candidate_clusters_.push_back(cluster);
-            ROS_INFO_STREAM("Energy for this cluster: " << cluster.energy_to_reach_cluster);
-        }
-
-        
-        ClusterInfo target_cluster = selectBestCluster(candidate_clusters_);
-
-        publishFinalTarget(target_cluster.centroid);
-
-
-
-
-    
-        // // Extract the centroid as the target position
-        // double target_x = largest_cluster->centroid.x;
-        // double target_y = largest_cluster->centroid.y;
-        // double target_z = largest_cluster->centroid.z;
-        
-    
-        // // Calculate yaw based on target THIS IS WRONG, SHOULD USE UAV POSITION
-        // // double target_yaw = atan2(target_y, target_x);
-        // // ATTEMPT with function: (I believe it works)
-        // double target_yaw = calculateYaw(target_x, target_y);
-
-    
-        // // Publish the best waypoint
-        // geometry_msgs::PoseStamped waypoint;
-        // waypoint.header.stamp = ros::Time::now();
-        // waypoint.header.frame_id = "world";
-        
-        // waypoint.pose.position.x = target_x;
-        // waypoint.pose.position.y = target_y;
-        // waypoint.pose.position.z = target_z;
-    
-        // // Calculate quaternion for yaw rotation
-        // waypoint.pose.orientation.x = 0.0;
-        // waypoint.pose.orientation.y = 0.0;
-        // waypoint.pose.orientation.z = sin(target_yaw / 2);
-        // waypoint.pose.orientation.w = cos(target_yaw / 2);
-    
-        // // Use a new publisher for best waypoint
-        // static ros::NodeHandle nh;
-        // static ros::Publisher best_waypoint_pub = nh.advertise<geometry_msgs::PoseStamped>("/best_waypoint", 10);
-    
-        // ROS_INFO_STREAM("Publishing best waypoint: x=" << target_x << ", y=" << target_y << ", z=" << target_z << ", yaw=" << target_yaw);
-        // best_waypoint_pub.publish(waypoint);
-        
-    }
-
-
-
-
-
-    ClusterInfo selectBestCluster(const std::vector<ClusterInfo>& candidates) {
-        if (candidates.empty()) {
-            ROS_WARN("No candidate clusters provided. Returning default cluster.");
-            return ClusterInfo();  // Default-constructed cluster
-        }
-    
-        // Placeholder: just return the first one for now
-        // You will replace this logic later
-
-        // std::vector<double> cost
-        
-        // for (auto cluster in candidates) {
-        //     idx = 
-        //     cost[] = -1 * cluster.cluster_size + 1 * cluster.energy_to_reach_cluster
-        // }
-
-        return candidates[0];
-    }
-    
-
-
-
-    void energyCallback(const std_msgs::Float64::ConstPtr& msg) {
-        latest_energy_ = msg->data;
-        energy_received_ = true;
-    }
-
-
-
-
-
-    void publishPotentialTarget(const geometry_msgs::Point& pot_target_centroid) {
-
-        geometry_msgs::PoseStamped pot_target;
-        pot_target.header.stamp = ros::Time::now();
-        pot_target.header.frame_id = "world";
-        
-        pot_target.pose.position.x = pot_target_centroid.x;
-        pot_target.pose.position.y = pot_target_centroid.y;
-        pot_target.pose.position.z = pot_target_centroid.z;
-    
-        // Calculate quaternion for yaw rotation
-        pot_target.pose.orientation.x = 0.0;
-        pot_target.pose.orientation.y = 0.0;
-        pot_target.pose.orientation.z = sin(0);  //TODO!!! THINK OF
-        pot_target.pose.orientation.w = cos(0);  //TODO!!! THINK OF
-    
-        // Use a new publisher for best waypoint
-        // static ros::NodeHandle nh;
-        // static ros::Publisher best_waypoint_pub = nh.advertise<geometry_msgs::PoseStamped>("/pot_target", 10);
-    
-        ROS_INFO_STREAM("Publishing pot target...");
-        pot_target_pub.publish(pot_target);
-
-    }
-
-
-    void publishFinalTarget(const geometry_msgs::Point& final_target_centroid) {
-
-        double target_x = final_target_centroid.x;
-        double target_y = final_target_centroid.y;
-        double target_z = final_target_centroid.z;
+        // Extract the centroid as the target position
+        double target_x = largest_cluster->centroid.x;
+        double target_y = largest_cluster->centroid.y;
+        double target_z = largest_cluster->centroid.z;
         
     
         // Calculate yaw based on target THIS IS WRONG, SHOULD USE UAV POSITION
@@ -470,7 +327,7 @@ public:
         double target_yaw = calculateYaw(target_x, target_y);
 
     
-        // Set msgs data
+        // Publish the best waypoint
         geometry_msgs::PoseStamped waypoint;
         waypoint.header.stamp = ros::Time::now();
         waypoint.header.frame_id = "world";
@@ -485,11 +342,46 @@ public:
         waypoint.pose.orientation.z = sin(target_yaw / 2);
         waypoint.pose.orientation.w = cos(target_yaw / 2);
     
-        // Publish best waypoint
+        // Use a new publisher for best waypoint
+        static ros::NodeHandle nh;
+        static ros::Publisher best_waypoint_pub = nh.advertise<geometry_msgs::PoseStamped>("/best_waypoint", 10);
+    
         ROS_INFO_STREAM("Publishing best waypoint: x=" << target_x << ", y=" << target_y << ", z=" << target_z << ", yaw=" << target_yaw);
         best_waypoint_pub.publish(waypoint);
-
+        
     }
+
+
+  
+
+
+
+    // void publishPotentialTarget(const std::vector<geometry_msgs::Point>& pot_target_centroid) {
+
+    //     geometry_msgs::PoseStamped pot_target;
+    //     pot_target.header.stamp = ros::Time::now();
+    //     pot_target.header.frame_id = "world";
+        
+    //     pot_target.pose.position.x = pot_target_centroid.x;
+    //     pot_target.pose.position.y = pot_target_centroid.y;
+    //     pot_target.pose.position.z = pot_target_centroid.z;
+    
+    //     // Calculate quaternion for yaw rotation
+    //     pot_target.pose.orientation.x = 0.0;
+    //     pot_target.pose.orientation.y = 0.0;
+    //     pot_target.pose.orientation.z = sin(0);  //TODO!!! THINK OF
+    //     pot_target.pose.orientation.w = cos(0);  //TODO!!! THINK OF
+    
+    //     // Use a new publisher for best waypoint
+    //     // static ros::NodeHandle nh;
+    //     // static ros::Publisher best_waypoint_pub = nh.advertise<geometry_msgs::PoseStamped>("/pot_target", 10);
+    
+    //     ROS_INFO_STREAM("Publishing pot target...");
+    //     best_waypoint_pub.publish(pot_target);
+
+    // }
+
+
 
 
     void publishFrontiers(const std::vector<ClusterInfo>& cluster_infos) {
