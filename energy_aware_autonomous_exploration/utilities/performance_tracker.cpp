@@ -94,13 +94,13 @@ public:
 
 
         // Plot data if X% is explored (plot builds up over time)
-        if (explored_percentage >= 20) {
-            ROS_INFO("");
-            ROS_INFO("");
-            ROS_INFO("......... PLOT MADE .............");
-            ROS_INFO("with resolution %f", resolution);
-            ROS_INFO("");
-            ROS_INFO("");
+        if (explored_percentage >= 100) {
+            // ROS_INFO("");
+            // ROS_INFO("");
+            // ROS_INFO("......... PLOT MADE .............");
+            // ROS_INFO("with resolution %f", resolution);
+            // ROS_INFO("");
+            // ROS_INFO("");
             // Plot data
             plotData();
         }
@@ -113,19 +113,19 @@ public:
         if (file.is_open()) {
             file << time << "," << percentage << "\n";
             file.close();
-            ROS_INFO("");
-            ROS_INFO("");
-            ROS_INFO("");
-            ROS_INFO("Successfully logged data to file.");
-            ROS_INFO("");
-            ROS_INFO("");
+            // ROS_INFO("");
+            // ROS_INFO("");
+            // ROS_INFO("");
+            // ROS_INFO("Successfully logged data to file.");
+            // ROS_INFO("");
+            // ROS_INFO("");
         } else {
-            ROS_INFO("");
-            ROS_INFO("");
-            ROS_ERROR("Failed to open log file: %s", log_file_path.c_str());
-            ROS_INFO("");
-            ROS_INFO("");
-            ROS_INFO("");
+            // ROS_INFO("");
+            // ROS_INFO("");
+            // ROS_ERROR("Failed to open log file: %s", log_file_path.c_str());
+            // ROS_INFO("");
+            // ROS_INFO("");
+            // ROS_INFO("");
         }
         time_data.push_back(time);
         exploration_data.push_back(percentage);

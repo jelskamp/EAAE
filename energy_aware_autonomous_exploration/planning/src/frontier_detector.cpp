@@ -37,7 +37,7 @@ private:
     ros::Subscriber waypoint_reached_sub;
     ros::Subscriber energy_sub;
     ros::Publisher pot_target_pub;
-    ros::Publisher best_waypoint_pub;
+    // ros::Publisher best_waypoint_pub;
     double resolution;
 
     std::vector<ClusterInfo> last_valid_clusters;
@@ -66,7 +66,7 @@ public:
         energy_sub = nh.subscribe("/energy_consumed", 1, &FrontierDetector::energyCallback, this);
         pot_target_pub = nh.advertise<geometry_msgs::PoseStamped>("/pot_target", 1); 
 
-        best_waypoint_pub = nh.advertise<geometry_msgs::PoseStamped>("/best_waypoint", 10);
+        // best_waypoint_pub = nh.advertise<geometry_msgs::PoseStamped>("/best_waypoint", 10);
         
     }
 
@@ -106,9 +106,13 @@ public:
         // Only this line in order to correctly, dynamically visualize frontiers (not clustered)
         publishFrontiers2(frontiers);
 
+        ROS_INFO_STREAM("1 STARTING DIV KMEANS CLUSTERING...................1...............");
         std::vector<ClusterInfo> cluster_infos = divisiveKMeansClustering(frontiers);
+
+        ROS_INFO_STREAM("2 STARTING PUBLISHING FRONTIER CLUSTER CENTROIDS.............2.............");
         publishFrontiers(cluster_infos);
 
+        ROS_INFO_STREAM("3 STARTING FINDandPUBLISH BEST WAYPOINT................3.................");
         findAndPublishBestWaypoint(cluster_infos);
     }
 
@@ -179,7 +183,7 @@ public:
         ros::Duration(2.0).sleep();
         waypoint_reached = false;  // Reset waypoint status after recalculating clusters
     
-    // std::vector<ClusterInfo> divisiveKMeansClustering(std::vector<geometry_msgs::Point>& points) {
+        // std::vector<ClusterInfo> divisiveKMeansClustering(std::vector<geometry_msgs::Point>& points) {
         std::vector<ClusterInfo> cluster_infos;
         std::vector<std::vector<geometry_msgs::Point>> clusters;
         clusters.push_back(points);
@@ -239,6 +243,7 @@ public:
             if (!cluster2.empty()) clusters.push_back(cluster2);
         }
 
+
         last_valid_clusters = cluster_infos;
         return cluster_infos;
     }
@@ -294,6 +299,11 @@ public:
     
 
     void findAndPublishBestWaypoint(const std::vector<ClusterInfo>& cluster_infos) {
+        
+        // CHECK!! not 100% sure about this line yet
+        candidate_clusters_.clear();
+
+        
         // Check if there are any clusters
         if (cluster_infos.empty()) {
             ROS_WARN("No clusters found. No waypoint published.");
@@ -312,6 +322,11 @@ public:
             }
         );
 
+        ROS_INFO_STREAM("--------- ---- ---");
+        ROS_WARN("!!! THERE ARE %f amount of CLUSTERS (sorted) !!!", sorted_clusters.size() );
+        ROS_INFO_STREAM("---------");
+
+
         // Select top N (or all if fewer)
         std::vector<ClusterInfo> top_clusters;
         for (int i = 0; i < std::min(num_candidates, static_cast<int>(sorted_clusters.size())); ++i) {
@@ -320,39 +335,56 @@ public:
 
 
 
+
         //  TODO
         for (auto& cluster : top_clusters) {
             // Publish the centroid
             publishPotentialTarget(cluster.centroid);
-    
+
+
             // Wait for energy estimate
             energy_received_ = false;
             ros::Time start = ros::Time::now();
             ros::Rate rate(10);
 
 
+            // !!! WORKS BETTER WITHOUT THESE STEPS??? IS ENERGY RECEIVED WITHOUR THESSE LINES? 
             // Check if energy is received
-            while (!energy_received_ && (ros::Time::now() - start).toSec() < 3.0) {
-                ros::spinOnce();
-                rate.sleep();
-            }
+            // while (!energy_received_ && (ros::Time::now() - start).toSec() < 3.0) {
+            //     ros::spinOnce();
+            //     rate.sleep();
+            // }
     
-            if (!energy_received_) {
-                ROS_WARN("No energy received for this cluster, skipping...");
-                continue;
-            }
+            // if (!energy_received_) {
+            //     ROS_WARN("!!!!!!! No energy received for this cluster, skipping...  !!!!!");
+            //     continue;
+            // }
 
 
 
-    
+            // ROS_INFO_STREAM("---------");
+            // ROS_WARN("!!!!!!! ENERGY ADDEDDD energy_received: %f !!!!!", energy_received_);
+            // ROS_INFO_STREAM("---------");
+
             // Add energy to cluster info 
             cluster.energy_to_reach_cluster = latest_energy_;
             candidate_clusters_.push_back(cluster);
+            ROS_WARN_STREAM("-----------------");
+            ROS_INFO_STREAM("Number of clusters: " << top_clusters.size());
+            ROS_INFO("Size for this cluster: %f ", cluster.cluster_size);
+            ROS_INFO("Centroid for this cluster: %f, %f, %f", cluster.centroid.x, cluster.centroid.y, cluster.centroid.z);
             ROS_INFO_STREAM("Energy for this cluster: " << cluster.energy_to_reach_cluster);
+            ROS_WARN_STREAM("-----------------");
         }
 
         
         ClusterInfo target_cluster = selectBestCluster(candidate_clusters_);
+
+        // ROS_INFO_STREAM("---------");
+        // ROS_INFO_STREAM("---------");
+        // ROS_WARN("!?!?!?!?!? selected best cluster: %f, %f, %f !!!!!", target_cluster.centroid.x, target_cluster.centroid.y, target_cluster.centroid.z);
+        // ROS_INFO_STREAM("---------");
+        // ROS_INFO_STREAM("---------");
 
         publishFinalTarget(target_cluster.centroid);
 
@@ -442,10 +474,10 @@ public:
         pot_target.pose.position.z = pot_target_centroid.z;
     
         // Calculate quaternion for yaw rotation
-        pot_target.pose.orientation.x = 0.0;
-        pot_target.pose.orientation.y = 0.0;
-        pot_target.pose.orientation.z = sin(0);  //TODO!!! THINK OF
-        pot_target.pose.orientation.w = cos(0);  //TODO!!! THINK OF
+        // pot_target.pose.orientation.x = 0.0;
+        // pot_target.pose.orientation.y = 0.0;
+        // pot_target.pose.orientation.z = sin(0);  //TODO!!! THINK OF
+        // pot_target.pose.orientation.w = cos(0);  //TODO!!! THINK OF
     
         // Use a new publisher for best waypoint
         // static ros::NodeHandle nh;
@@ -485,6 +517,9 @@ public:
         waypoint.pose.orientation.z = sin(target_yaw / 2);
         waypoint.pose.orientation.w = cos(target_yaw / 2);
     
+        static ros::NodeHandle nh;
+        static ros::Publisher best_waypoint_pub = nh.advertise<geometry_msgs::PoseStamped>("/best_waypoint", 10);
+
         // Publish best waypoint
         ROS_INFO_STREAM("Publishing best waypoint: x=" << target_x << ", y=" << target_y << ", z=" << target_z << ", yaw=" << target_yaw);
         best_waypoint_pub.publish(waypoint);

@@ -70,8 +70,8 @@ void trajectoryCallback(const quadrotor_msgs::PositionCommand::ConstPtr& msg) {
 
     // Publish the converted trajectory
     traj_pub.publish(trajectory_msg);
-    ROS_INFO("Published trajectory to Agilicious: x=%.2f, y=%.2f, z=%.2f, yaw=%.2f",
-             msg->position.x, msg->position.y, msg->position.z, msg->yaw);
+    // ROS_INFO("Published trajectory to Agilicious: x=%.2f, y=%.2f, z=%.2f, yaw=%.2f",
+    //          msg->position.x, msg->position.y, msg->position.z, msg->yaw);
 }
 
 
