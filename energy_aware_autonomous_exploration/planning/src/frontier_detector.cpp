@@ -40,6 +40,12 @@ private:
     // ros::Publisher best_waypoint_pub;
     double resolution;
 
+
+    ros::Time last_potential_target_sent_time_;
+    ros::Time last_energy_received_time_;
+
+
+
     std::vector<ClusterInfo> last_valid_clusters;
 
     double uav_x = 0.0;
@@ -322,10 +328,6 @@ public:
             }
         );
 
-        ROS_INFO_STREAM("--------- ---- ---");
-        ROS_WARN("!!! THERE ARE %f amount of CLUSTERS (sorted) !!!", sorted_clusters.size() );
-        ROS_INFO_STREAM("---------");
-
 
         // Select top N (or all if fewer)
         std::vector<ClusterInfo> top_clusters;
@@ -341,11 +343,14 @@ public:
             // Publish the centroid
             publishPotentialTarget(cluster.centroid);
 
+            ros::Duration(0.2).sleep();  // Optional small pause
+
 
             // Wait for energy estimate
-            energy_received_ = false;
-            ros::Time start = ros::Time::now();
-            ros::Rate rate(10);
+            // SEEMS TO WORK (AT LEAST RUN CONT.) IF I DELETE false FLAG ??!??!? (does it still receive energy correpsonding to current cluster)
+            // energy_received_ = false;
+            // ros::Time start = ros::Time::now();
+            // ros::Rate rate(10);
 
 
             // !!! WORKS BETTER WITHOUT THESE STEPS??? IS ENERGY RECEIVED WITHOUR THESSE LINES? 
@@ -355,10 +360,29 @@ public:
             //     rate.sleep();
             // }
     
-            // if (!energy_received_) {
-            //     ROS_WARN("!!!!!!! No energy received for this cluster, skipping...  !!!!!");
-            //     continue;
-            // }
+            if (!energy_received_) {
+                ROS_WARN("!!!!!!! No energy received for this cluster, skipping...  !!!!!");
+                
+
+                cluster.energy_to_reach_cluster = 9999999999999999999999;
+                candidate_clusters_.push_back(cluster);
+                continue;
+            }
+
+            ROS_WARN_STREAM("-----------------");
+            ROS_WARN_STREAM("-----------------");
+            ROS_WARN_STREAM("-----------------");
+            ROS_WARN_STREAM("-----------------");
+            ROS_WARN_STREAM("-----------------");
+            ROS_WARN_STREAM("-----------------");
+            ROS_WARN_STREAM("--- ENERGY RECEIVED ----");
+            ROS_WARN_STREAM("-----------------");
+            ROS_WARN_STREAM("-----------------");
+            ROS_WARN_STREAM("-----------------");
+            ROS_WARN_STREAM("-----------------");
+            ROS_WARN_STREAM("-----------------");
+            ROS_WARN_STREAM("-----------------");
+            
 
 
 
@@ -454,39 +478,70 @@ public:
 
 
 
+    // void energyCallback(const std_msgs::Float64::ConstPtr& msg) {
+    //     latest_energy_ = msg->data;
+    //     energy_received_ = true;
+    // }
     void energyCallback(const std_msgs::Float64::ConstPtr& msg) {
-        latest_energy_ = msg->data;
-        energy_received_ = true;
+        ros::Time now = ros::Time::now();
+
+        // Accept the energy only if it is newer than the last target publication
+        if ((now - last_potential_target_sent_time_).toSec() > 0.01) {
+            latest_energy_ = msg->data;
+            energy_received_ = true;
+            last_energy_received_time_ = now;
+
+            ROS_INFO_STREAM("Received valid energy: " << latest_energy_ << " at time: " << now.toSec());
+        } else {
+            ROS_WARN("Received energy too early or from a previous cycle. Ignoring.");
+        }
     }
 
 
 
 
 
-    void publishPotentialTarget(const geometry_msgs::Point& pot_target_centroid) {
 
+    // void publishPotentialTarget(const geometry_msgs::Point& pot_target_centroid) {
+
+    //     geometry_msgs::PoseStamped pot_target;
+    //     pot_target.header.stamp = ros::Time::now();
+    //     pot_target.header.frame_id = "world";
+        
+    //     pot_target.pose.position.x = pot_target_centroid.x;
+    //     pot_target.pose.position.y = pot_target_centroid.y;
+    //     pot_target.pose.position.z = pot_target_centroid.z;
+    
+    //     // Calculate quaternion for yaw rotation
+    //     // pot_target.pose.orientation.x = 0.0;
+    //     // pot_target.pose.orientation.y = 0.0;
+    //     // pot_target.pose.orientation.z = sin(0);  //TODO!!! THINK OF
+    //     // pot_target.pose.orientation.w = cos(0);  //TODO!!! THINK OF
+    
+    //     // Use a new publisher for best waypoint
+    //     // static ros::NodeHandle nh;
+    //     // static ros::Publisher best_waypoint_pub = nh.advertise<geometry_msgs::PoseStamped>("/pot_target", 10);
+    
+    //     ROS_INFO_STREAM("Publishing pot target...");
+    //     pot_target_pub.publish(pot_target);
+
+    // }
+
+    void publishPotentialTarget(const geometry_msgs::Point& pot_target_centroid) {
         geometry_msgs::PoseStamped pot_target;
         pot_target.header.stamp = ros::Time::now();
         pot_target.header.frame_id = "world";
-        
-        pot_target.pose.position.x = pot_target_centroid.x;
-        pot_target.pose.position.y = pot_target_centroid.y;
-        pot_target.pose.position.z = pot_target_centroid.z;
-    
-        // Calculate quaternion for yaw rotation
-        // pot_target.pose.orientation.x = 0.0;
-        // pot_target.pose.orientation.y = 0.0;
-        // pot_target.pose.orientation.z = sin(0);  //TODO!!! THINK OF
-        // pot_target.pose.orientation.w = cos(0);  //TODO!!! THINK OF
-    
-        // Use a new publisher for best waypoint
-        // static ros::NodeHandle nh;
-        // static ros::Publisher best_waypoint_pub = nh.advertise<geometry_msgs::PoseStamped>("/pot_target", 10);
-    
-        ROS_INFO_STREAM("Publishing pot target...");
+        pot_target.pose.position = pot_target_centroid;
+        pot_target.pose.orientation.w = 1.0;
+
         pot_target_pub.publish(pot_target);
 
+        // Store the time of publication
+        last_potential_target_sent_time_ = ros::Time::now();
+
+        ROS_INFO_STREAM("Published potential target at time: " << last_potential_target_sent_time_.toSec());
     }
+
 
 
     void publishFinalTarget(const geometry_msgs::Point& final_target_centroid) {
