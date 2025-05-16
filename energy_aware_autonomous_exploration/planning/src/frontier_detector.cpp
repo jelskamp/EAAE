@@ -348,7 +348,7 @@ public:
 
             // Wait for energy estimate
             // SEEMS TO WORK (AT LEAST RUN CONT.) IF I DELETE false FLAG ??!??!? (does it still receive energy correpsonding to current cluster)
-            // energy_received_ = false;
+            energy_received_ = false;
             // ros::Time start = ros::Time::now();
             // ros::Rate rate(10);
 
@@ -359,19 +359,25 @@ public:
             //     ros::spinOnce();
             //     rate.sleep();
             // }
-    
-            if (!energy_received_) {
-                ROS_WARN("!!!!!!! No energy received for this cluster, skipping...  !!!!!");
-                
-
-                cluster.energy_to_reach_cluster = 9999999999999999999999;
-                candidate_clusters_.push_back(cluster);
-                continue;
+            
+            // 3. Wait as long as necessary until fresh energy is received
+            ros::Rate rate(10);  // 5 Hz log rate
+            while (!energy_received_) {
+                ROS_INFO_STREAM_THROTTLE(1.0, "-0--0--0-0-0-0-0- Waiting for energy response...");
+                ros::spinOnce();
+                rate.sleep();
             }
+    
+            // if (!energy_received_) {
+            //     ROS_WARN("!!!!!!! No energy received for this cluster, skipping...  !!!!!");
 
-            ROS_WARN_STREAM("-----------------");
-            ROS_WARN_STREAM("-----------------");
-            ROS_WARN_STREAM("-----------------");
+            //     // cluster.energy_to_reach_cluster = 9999999999999999999999;
+            //     // candidate_clusters_.push_back(cluster);
+            //     continue;
+            // }
+
+
+
             ROS_WARN_STREAM("-----------------");
             ROS_WARN_STREAM("-----------------");
             ROS_WARN_STREAM("-----------------");
@@ -379,23 +385,15 @@ public:
             ROS_WARN_STREAM("-----------------");
             ROS_WARN_STREAM("-----------------");
             ROS_WARN_STREAM("-----------------");
-            ROS_WARN_STREAM("-----------------");
-            ROS_WARN_STREAM("-----------------");
-            ROS_WARN_STREAM("-----------------");
+
             
 
-
-
-            // ROS_INFO_STREAM("---------");
-            // ROS_WARN("!!!!!!! ENERGY ADDEDDD energy_received: %f !!!!!", energy_received_);
-            // ROS_INFO_STREAM("---------");
 
             // Add energy to cluster info 
             cluster.energy_to_reach_cluster = latest_energy_;
             candidate_clusters_.push_back(cluster);
             ROS_WARN_STREAM("-----------------");
             ROS_INFO_STREAM("Number of clusters: " << top_clusters.size());
-            ROS_INFO("Size for this cluster: %f ", cluster.cluster_size);
             ROS_INFO("Centroid for this cluster: %f, %f, %f", cluster.centroid.x, cluster.centroid.y, cluster.centroid.z);
             ROS_INFO_STREAM("Energy for this cluster: " << cluster.energy_to_reach_cluster);
             ROS_WARN_STREAM("-----------------");
