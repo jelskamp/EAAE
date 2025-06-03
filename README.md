@@ -2,7 +2,7 @@
 MSc thesis project by Jacob Elskamp
 
 
-
+- README under construction -
 
 ## Getting Started
 Clone project into your `catkin` workspace and `catkin build --force-cmake`:
