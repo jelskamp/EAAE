@@ -15,7 +15,11 @@
     <!-- <arg name="world_name" default="$(find agiros)/resources/gazebo_files/basic.world"/>  -->
     <!-- <arg name="world_name" default="$(find agiros)/resources/gazebo_files/basic_adjusted.world"/> -->
     <!-- <arg name="world_name" default="$(find agiros)/resources/gazebo_files/basic_enclosed.world"/> -->
-    <arg name="world_name" default="$(find agiros)/resources/gazebo_files/basic_enclosed_small.world"/>
+    <!-- <arg name="world_name" default="$(find agiros)/resources/gazebo_files/basic_enclosed_small.world"/> -->
+    <!-- <arg name="world_name" default="$(find agiros)/resources/gazebo_files/simple1_small.world"/> -->
+    <!-- <arg name="world_name" default="$(find agiros)/resources/gazebo_files/simple_no_walls.world"/> -->
+    <!-- <arg name="world_name" default="$(find agiros)/resources/gazebo_files/very_simple.world"/> -->
+    <arg name="world_name" default="$(find agiros)/resources/gazebo_files/pillars.world"/>
 
 
     <include file="$(find agiros)/launch/simulation/base_quad_simulation.launch">
@@ -69,13 +73,18 @@
     <node pkg="agiros" type="odom_publisher_for_ego" name="odom_publisher" output="screen"/>
 
     <!-- Node for pre-running trajectories and corresponding energy calucation -->
-    <node pkg="agiros" type="energy_estimator_node" name="energy_estimator" output="screen">
+    <!-- <node pkg="agiros" type="energy_estimator_node" name="energy_estimator" output="screen">
+        <param name="agi_param_dir" value="$(find agilib)/params"/>
+        <param name="simulator_config" value="simulation.yaml"/>
+        <param name="ros_param_dir" value="$(find agiros)/parameters"/>
+        <param name="controller_config" value="geo_guard.yaml"/>
+    </node> -->
+    <node pkg="agiros" type="energy_estimator_node_service" name="energy_estimator_service" output="screen">
         <param name="agi_param_dir" value="$(find agilib)/params"/>
         <param name="simulator_config" value="simulation.yaml"/>
         <param name="ros_param_dir" value="$(find agiros)/parameters"/>
         <param name="controller_config" value="geo_guard.yaml"/>
     </node>
-
 
 
     <!-- Visualization -->
@@ -100,10 +109,10 @@
 
     <!-- Start Frontier Detector-->
     <param name="/sdf_map/resolution"      value="0.1" /> 
-    <param name="/sdf_map/map_size_x"   value="30" /> 
-    <param name="/sdf_map/map_size_y"   value="30" /> 
+    <param name="/sdf_map/map_size_x"   value="20" /> 
+    <param name="/sdf_map/map_size_y"   value="20" /> 
     <param name="/sdf_map/map_size_z"   value="5" /> 
-    <param name="/sdf_map/obstacles_inflation"     value="0.199" /> 
+    <param name="/sdf_map/obstacles_inflation"     value="0.199" />     
     <param name="/sdf_map/local_bound_inflate"    value="0.5"/>
     <param name="/sdf_map/local_map_margin" value="50"/>
     <param name="/sdf_map/ground_height"        value="-1.0"/>
@@ -130,10 +139,16 @@
     <param name="/map_ros/cy" value="360"/>
     <param name="/map_ros/fx" value="695.99511719"/>
     <param name="/map_ros/fy" value="695.99511719"/> -->
-    <param name="/map_ros/cx" value="320.5"/>
+
+    <!-- <param name="/map_ros/cx" value="320.5"/>
     <param name="/map_ros/cy" value="240.5"/>
     <param name="/map_ros/fx" value="585.7560709479847"/>
-    <param name="/map_ros/fy" value="585.7560709479847"/>
+    <param name="/map_ros/fy" value="585.7560709479847"/> -->
+
+    <arg name="cx" value="510.5"/>
+    <arg name="cy" value="390.5"/>
+    <arg name="fx" value="933.5487380733505"/>
+    <arg name="fy" value="933.5487380733505"/>
 
     <!-- Depth Filter -->
     <param name="/map_ros/depth_filter_maxdist"   value="5.0"/>

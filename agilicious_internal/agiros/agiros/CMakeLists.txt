@@ -1,7 +1,23 @@
 project(agiros)
 cmake_minimum_required(VERSION 3.0.0)
 
+
+
 find_package(catkin_simple REQUIRED)
+
+
+
+# add_service_files(
+#   DIRECTORY srv
+#   FILES
+#   getEnergy.srv
+# )
+
+# generate_messages(
+#   DEPENDENCIES
+#   std_msgs
+#   agiros_msgs
+# )  
 
 
 # FOR GAZEBO (ADDED BY ME) , ALSO SEE CMAKELISTS
@@ -14,7 +30,20 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   tf
+  std_msgs
+  message_generation
 )
+# find_package(catkin REQUIRED COMPONENTS
+#   roscpp
+#   rospy
+#   std_msgs
+#   geometry_msgs
+#   nav_msgs
+#   tf
+#   agiros_msgs
+#   message_generation
+# )
+
 
 
 
@@ -57,7 +86,17 @@ cs_add_library(ros_pilot
         src/bridge/ros_bridge.cpp
         src/ctrl_feedback_publisher.cpp
         )
+
         
+      
+
+# cs_add_service_files(
+#   FILES
+#   getEnergy.srv
+# )
+
+# cs_generate_messages()
+
 
 # FOR GAZEBO (ADDED BY ME) , ALSO SEE CMAKELISTS
 include_directories(
@@ -152,13 +191,6 @@ cs_add_library(update_uav_pose_plugin src/update_uav_pose_plugin.cpp)
 target_link_libraries(update_uav_pose_plugin ${GAZEBO_LIBRARIES} ${catkin_LIBRARIES})
 add_dependencies(update_uav_pose_plugin ${catkin_EXPORTED_TARGETS})
 
-# Install the plugin   ADDED BY ME!!!!!!!!!!!!! , ALSO SEE CMAKELISTS
-#install(TARGETS update_uav_pose_plugin
-#  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#  RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
-#)
-
 
 # Add uav TF broadcaster ADDED BY ME!!!!!!!!!!!!!
 # cs_add_library(uav_tf_broadcast src/uav_tf_broadcast.cpp)
@@ -166,18 +198,17 @@ cs_add_executable(uav_tf_broadcast src/uav_tf_broadcast.cpp)
 target_link_libraries(uav_tf_broadcast ${catkin_LIBRARIES})
 
 
-
-
 # Add the odometry publisher node
 cs_add_executable(odom_publisher_for_ego src/odom_publisher_for_ego.cpp)
 target_link_libraries(odom_publisher_for_ego ${catkin_LIBRARIES})
 
 
-# Energy Estimator Node
-cs_add_executable(energy_estimator_node src/energy_estimator.cpp)
-target_link_libraries(energy_estimator_node ros_pilot)
+# Energy Estimator Node - no service
+# cs_add_executable(energy_estimator_node src/energy_estimator.cpp)
+# target_link_libraries(energy_estimator_node ros_pilot)
 
-
+cs_add_executable(energy_estimator_node_service src/energy_estimator.cpp)
+target_link_libraries(energy_estimator_node_service ros_pilot)
 
 
 

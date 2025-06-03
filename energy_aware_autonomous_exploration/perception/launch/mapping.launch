@@ -23,27 +23,6 @@
 
 
 
-    <!-- <node pkg="autonomous_exploration" type="custom_octomap_server" name="custom_octomap_server">
-        <param name="frame_id" value="world"/>
-        <param name="base_frame_id" value="/kingfisher/base_link"/>
-        <param name="sensor_model/max_range" value="5.0"/>
-    </node> -->
-
-    <!-- <arg name="rate" default="1"/>
-    <arg name="namespace" default="kingfisher"/>
-    <arg name="odometry" default="/my_odom_topic"/>
-    <arg name="cloud_in" default="/kingfisher/camera_depth/depth/points"/>
-    <arg name="config_filename" default="$(find autonomous_exploration)/config/custom_octomap_config.yaml"/>
-
-
-    <group ns="$(arg namespace)">
-        <node name="custom_octomap_server" pkg="autonomous_exploration" type="custom_octomap_server" output="screen">
-        <param name="rate" value="$(arg rate)"/>
-        <param name="exploration_config_filename" value="$(arg config_filename)"/>
-        <remap from="cloud_in" to="$(arg cloud_in)"/>
-        <remap from="odometry" to="$(arg odometry)"/>
-        </node>
-    </group> -->
 
 
 
@@ -69,8 +48,13 @@
     <node pkg="autonomous_exploration" type="performance_tracker" name="performance_tracker" output="screen"/>
 
 
+    <!-- Track entropy -->
+    <node pkg="autonomous_exploration" type="entropy_calculator" name="entropy_calculator" output="screen"/>
  
 
+    <!-- Log energy -->
+    <node pkg="autonomous_exploration" type="energy_logger" name="energy_logger" output="screen"/>
+ 
 
 
 </launch>

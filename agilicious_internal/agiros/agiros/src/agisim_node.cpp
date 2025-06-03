@@ -5,6 +5,9 @@
 #include "nav_msgs/Odometry.h"
 #include "rosgraph_msgs/Clock.h"
 
+#include <std_msgs/Float64MultiArray.h>
+
+
 using namespace agi;
 
 static inline SimulatorParams loadParams(const ros::NodeHandle &nh) {
@@ -71,6 +74,9 @@ void AgiSim::simLoop() {
     ros_pilot_.getPilot().guardOdometryCallback(quad_state);
     ros_pilot_.getPilot().motorSpeedCallback(quad_state.mot);
     const Command cmd = ros_pilot_.getCommand();
+
+
+
     if (cmd.valid()) {
       simulator_.setCommand(cmd);
     } else {
@@ -109,6 +115,10 @@ void AgiSim::publishStates(const QuadState &state) {
   odometry_publisher_.publish(msg_odo);
   state_publisher_.publish(msg);
 }
+
+
+
+
 
 int main(int argc, char **argv) {
   ros::init(argc, argv, "agisim_node");

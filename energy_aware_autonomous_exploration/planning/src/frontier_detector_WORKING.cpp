@@ -12,16 +12,19 @@
 #include <agiros_msgs/QuadState.h>
 
 #include <std_msgs/Bool.h>
+#include <std_msgs/Float64.h>
+
 
 // CHECK IF TRUE OR FALSE!!!
 bool waypoint_reached = true;
+bool clustering_done = false;
 
 
 // New struct to store cluster info
 struct ClusterInfo {
     geometry_msgs::Point centroid;  // Centroid of the cluster
     int cluster_size;  // Number of points in the cluster
-    // double energy_to_reach_cluster;
+    double energy_to_reach_cluster;
 };
 
 
@@ -33,9 +36,17 @@ private:
     ros::Publisher frontier_pub2;
     ros::Subscriber uav_pos;
     ros::Subscriber waypoint_reached_sub;
-    // ros::Subscriber energy_sub;
-    // ros::Publisher pot_target_pub
+    ros::Subscriber clustering_done_sub;
+    ros::Subscriber energy_sub;
+    ros::Publisher pot_target_pub;
+    // ros::Publisher best_waypoint_pub;
     double resolution;
+
+
+    ros::Time last_potential_target_sent_time_;
+    ros::Time last_energy_received_time_;
+
+
 
     std::vector<ClusterInfo> last_valid_clusters;
 
@@ -43,16 +54,14 @@ private:
     double uav_y = 0.0;
     double uav_z = 0.0;
 
-    // std::vector<ClusterInfo> candidate_clusters_;
+    std::vector<ClusterInfo> candidate_clusters_;
     bool energy_received_ = false;
-    // double latest_energy_ = 0.0;
+    double latest_energy_ = 0.0;
 
 
     
 public:
     FrontierDetector() {
-
-        // CONT. SUBSCRIBER (WORKS)
         octomap_sub = nh.subscribe("/octomap_binary", 1, &FrontierDetector::octomapCallback, this);
 
         frontier_pub = nh.advertise<visualization_msgs::MarkerArray>("/frontier_markers", 1);
@@ -61,10 +70,13 @@ public:
         uav_pos = nh.subscribe("/kingfisher/agiros_pilot/state", 10, &FrontierDetector::uavPositionCallback, this);
 
         waypoint_reached_sub = nh.subscribe("/waypoint_reached", 10, &FrontierDetector::waypointReachedCallback, this);
+        clustering_done_sub = nh.subscribe("/clustering_done", 10, &FrontierDetector::clusteringDoneCallback, this);
 
-        // energy_sub = nh.subscribe("/energy_consumed", 1, &FrontierDetector::energyCallback, this);
-        // pot_target_pub = nh.advertise<geometry_msgs::PoseStamped>("/pot_target", 1); 
+        energy_sub = nh.subscribe("/energy_consumed", 1, &FrontierDetector::energyCallback, this);
+        pot_target_pub = nh.advertise<geometry_msgs::PoseStamped>("/pot_target", 1); 
 
+        // best_waypoint_pub = nh.advertise<geometry_msgs::PoseStamped>("/best_waypoint", 10);
+        
     }
 
 
@@ -101,11 +113,15 @@ public:
         }
 
         // Only this line in order to correctly, dynamically visualize frontiers (not clustered)
-        publishFrontiers2(frontiers);
+        publishFrontiers(frontiers);
 
+        ROS_INFO_STREAM("1 STARTING DIV KMEANS CLUSTERING...................1...............");
         std::vector<ClusterInfo> cluster_infos = divisiveKMeansClustering(frontiers);
-        publishFrontiers(cluster_infos);
 
+        ROS_INFO_STREAM("2 STARTING PUBLISHING FRONTIER CLUSTER CENTROIDS.............2.............");
+        publishClusters(cluster_infos);
+
+        ROS_INFO_STREAM("3 STARTING FINDandPUBLISH BEST WAYPOINT................3.................");
         findAndPublishBestWaypoint(cluster_infos);
     }
 
@@ -162,6 +178,11 @@ public:
         waypoint_reached = msg->data;
         ROS_WARN_STREAM("Waypoint reached status updated: " << waypoint_reached);
     }
+
+    void clusteringDoneCallback(const std_msgs::Bool::ConstPtr& msg) {
+        clustering_done = msg->data;
+        ROS_WARN_STREAM("Clustering done status updated: " << clustering_done);
+    }
     
 
 
@@ -169,14 +190,21 @@ public:
     std::vector<ClusterInfo> divisiveKMeansClustering(std::vector<geometry_msgs::Point>& points) {
         
         // POSSIBLY ADD WAITER TO CALCULATE CLUSTERPOINTS 1/2 SECONDS AFTER WAYPOINT REACHED???
-        if (!waypoint_reached) {
+        // if (!waypoint_reached) {
+        //     ROS_WARN("Skipping clustering - UAV is still moving.");
+        //     return last_valid_clusters;  // Return empty cluster list until UAV reaches waypoint
+        // }
+        // waypoint_reached = false;  // Reset waypoint status after recalculating clusters
+        if (clustering_done) {
             ROS_WARN("Skipping clustering - UAV is still moving.");
             return last_valid_clusters;  // Return empty cluster list until UAV reaches waypoint
         }
+        clustering_done = true;
+
+
         ros::Duration(2.0).sleep();
-        waypoint_reached = false;  // Reset waypoint status after recalculating clusters
     
-    // std::vector<ClusterInfo> divisiveKMeansClustering(std::vector<geometry_msgs::Point>& points) {
+        // std::vector<ClusterInfo> divisiveKMeansClustering(std::vector<geometry_msgs::Point>& points) {
         std::vector<ClusterInfo> cluster_infos;
         std::vector<std::vector<geometry_msgs::Point>> clusters;
         clusters.push_back(points);
@@ -236,15 +264,10 @@ public:
             if (!cluster2.empty()) clusters.push_back(cluster2);
         }
 
+
         last_valid_clusters = cluster_infos;
         return cluster_infos;
     }
-
-
-
-
-
-
 
 
 
@@ -265,7 +288,6 @@ public:
 
 
 
-    
     
     void uavPositionCallback(const agiros_msgs::QuadState::ConstPtr &msg) {
         uav_x = msg->pose.position.x;
@@ -296,66 +318,179 @@ public:
     }
     
     
+
     void findAndPublishBestWaypoint(const std::vector<ClusterInfo>& cluster_infos) {
+        
+        // CHECK!! not 100% sure about this line yet
+        candidate_clusters_.clear();
+
+        
         // Check if there are any clusters
         if (cluster_infos.empty()) {
             ROS_WARN("No clusters found. No waypoint published.");
             return;
         }
 
+        if (!waypoint_reached) {
+            ROS_WARN_STREAM("!! DONT FindAndPub WAYPOINT, current target not reached... !!" << waypoint_reached);
+            return;
+        }
+        
 
-        // Find the largest cluster by size > LATER: taking distance into account
-        auto largest_cluster = std::max_element(cluster_infos.begin(), cluster_infos.end(), 
+
+        int num_candidates = 3;
+        // Copy cluster_infos so we can sort it
+        std::vector<ClusterInfo> sorted_clusters = cluster_infos;
+
+        // Sort clusters descending by size
+        std::sort(sorted_clusters.begin(), sorted_clusters.end(), 
             [](const ClusterInfo& a, const ClusterInfo& b) {
-                return a.cluster_size < b.cluster_size;
+                return a.cluster_size > b.cluster_size;  // Larger clusters first
             }
         );
 
 
+        // Select top N (or all if fewer)
+        std::vector<ClusterInfo> top_clusters;
+        for (int i = 0; i < std::min(num_candidates, static_cast<int>(sorted_clusters.size())); ++i) {
+            top_clusters.push_back(sorted_clusters[i]);
+        }
+
+
+        
+
+        //  TODO
+        for (auto& cluster : top_clusters) {
+            // Publish the centroid
+            publishPotentialTarget(cluster.centroid);
+
+            ros::Duration(0.2).sleep();  // Optional small pause
+
+
+            // Wait for energy estimate
+            // SEEMS TO WORK (AT LEAST RUN CONT.) IF I DELETE false FLAG ??!??!? (does it still receive energy correpsonding to current cluster)
+            
+
+
+            // energy_received_ = false;
+            
+    
+\
+            // ros::Rate rate(10);  // 5 Hz log rate
+            // while (!energy_received_) {
+            //     ROS_INFO_STREAM_THROTTLE(1.0, "-0--0--0-0-0-0-0- Waiting for energy response...");
+            //     // ROS_INFO_STREAM("-0--0--0-0-0-0-0- Waiting for energy response...");
+            //     ros::spinOnce();
+            //     rate.sleep();
+            // }
+
+
+
+
+   
+            // if (!energy_received_) {
+            //     ROS_INFO_STREAM_THROTTLE(1.0, "-010101010- Waiting for energy response...");
+            //     // energy_received_ = false;
+            //     continue;
+            // }
 
     
-        // Extract the centroid as the target position
-        double target_x = largest_cluster->centroid.x;
-        double target_y = largest_cluster->centroid.y;
-        double target_z = largest_cluster->centroid.z;
-        
-    
-        // Calculate yaw based on target THIS IS WRONG, SHOULD USE UAV POSITION
-        // double target_yaw = atan2(target_y, target_x);
-        // ATTEMPT with function: (I believe it works)
-        double target_yaw = calculateYaw(target_x, target_y);
+            // if (!energy_received_) {
+            //     ROS_WARN("!!!!!!! No energy received for this cluster, skipping...  !!!!!");
 
-    
-        // Publish the best waypoint
-        geometry_msgs::PoseStamped waypoint;
-        waypoint.header.stamp = ros::Time::now();
-        waypoint.header.frame_id = "world";
-        
-        waypoint.pose.position.x = target_x;
-        waypoint.pose.position.y = target_y;
-        waypoint.pose.position.z = target_z;
-    
-        // Calculate quaternion for yaw rotation
-        waypoint.pose.orientation.x = 0.0;
-        waypoint.pose.orientation.y = 0.0;
-        waypoint.pose.orientation.z = sin(target_yaw / 2);
-        waypoint.pose.orientation.w = cos(target_yaw / 2);
-    
-        // Use a new publisher for best waypoint
-        static ros::NodeHandle nh;
-        static ros::Publisher best_waypoint_pub = nh.advertise<geometry_msgs::PoseStamped>("/best_waypoint", 10);
-    
-        ROS_INFO_STREAM("Publishing best waypoint: x=" << target_x << ", y=" << target_y << ", z=" << target_z << ", yaw=" << target_yaw);
-        best_waypoint_pub.publish(waypoint);
+            //     // cluster.energy_to_reach_cluster = 9999999999999999999999;
+            //     // candidate_clusters_.push_back(cluster);
+            //     continue;
+            // }
+
+
+
+            ROS_WARN_STREAM("-----------------");
+            ROS_WARN_STREAM("-----------------");
+            ROS_WARN_STREAM("-----------------");
+            ROS_WARN_STREAM("--- ENERGY RECEIVED ----");
+            ROS_WARN_STREAM("-----------------");
+            ROS_WARN_STREAM("-----------------");
+            ROS_WARN_STREAM("-----------------");
+
+            
+
+
+            // Add energy to cluster info 
+            cluster.energy_to_reach_cluster = latest_energy_;
+            candidate_clusters_.push_back(cluster);
+            ROS_WARN_STREAM("-----------------");
+            ROS_INFO_STREAM("Number of clusters: " << top_clusters.size());
+            ROS_INFO("Centroid for this cluster: %f, %f, %f", cluster.centroid.x, cluster.centroid.y, cluster.centroid.z);
+            ROS_INFO_STREAM("Energy for this cluster: " << cluster.energy_to_reach_cluster);
+            ROS_WARN_STREAM("-----------------");
+        }
+
+        ROS_WARN_STREAM("-----------------");
+        ROS_WARN_STREAM("--- OUT of For Loop ! ----");
+        ROS_WARN_STREAM("-----------------");
+
+        ClusterInfo target_cluster = selectBestCluster(candidate_clusters_);
+
+        publishFinalTarget(target_cluster.centroid);
         
     }
 
 
-  
 
 
 
-    // void publishPotentialTarget(const std::vector<geometry_msgs::Point>& pot_target_centroid) {
+    ClusterInfo selectBestCluster(const std::vector<ClusterInfo>& candidates) {
+        if (candidates.empty()) {
+            ROS_WARN("No candidate clusters provided. Returning default cluster.");
+            return ClusterInfo();  // Default-constructed cluster
+        }
+    
+        // Placeholder: just return the first one for now
+        // You will replace this logic later
+
+        // std::vector<double> cost
+        
+        // for (auto cluster in candidates) {
+        //     idx = 
+        //     cost[] = -1 * cluster.cluster_size + 1 * cluster.energy_to_reach_cluster
+        // }
+
+        return candidates[0];
+    }
+    
+
+
+
+    // void energyCallback(const std_msgs::Float64::ConstPtr& msg) {
+    //     latest_energy_ = msg->data;
+    //     energy_received_ = true;
+    // }
+    void energyCallback(const std_msgs::Float64::ConstPtr& msg) {
+        ros::Time now = ros::Time::now();
+
+        ROS_WARN_STREAM("-----------------");
+        ROS_INFO_STREAM(now.toSec() << last_potential_target_sent_time_.toSec());
+        ROS_WARN_STREAM("-----------------");
+
+        // Accept the energy only if it is newer than the last target publication
+        if ((now - last_potential_target_sent_time_).toSec() > 0.01) {
+            latest_energy_ = msg->data;
+            energy_received_ = true;
+            last_energy_received_time_ = now;
+
+            ROS_INFO_STREAM("Received VALID ENERGY: " << latest_energy_ << " at time: " << now.toSec());
+        } else {
+            ROS_WARN("Received energy too early or from a previous cycle. Ignoring.");
+        }
+    }
+
+
+
+
+
+
+    // void publishPotentialTarget(const geometry_msgs::Point& pot_target_centroid) {
 
     //     geometry_msgs::PoseStamped pot_target;
     //     pot_target.header.stamp = ros::Time::now();
@@ -366,30 +501,83 @@ public:
     //     pot_target.pose.position.z = pot_target_centroid.z;
     
     //     // Calculate quaternion for yaw rotation
-    //     pot_target.pose.orientation.x = 0.0;
-    //     pot_target.pose.orientation.y = 0.0;
-    //     pot_target.pose.orientation.z = sin(0);  //TODO!!! THINK OF
-    //     pot_target.pose.orientation.w = cos(0);  //TODO!!! THINK OF
+    //     // pot_target.pose.orientation.x = 0.0;
+    //     // pot_target.pose.orientation.y = 0.0;
+    //     // pot_target.pose.orientation.z = sin(0);  //TODO!!! THINK OF
+    //     // pot_target.pose.orientation.w = cos(0);  //TODO!!! THINK OF
     
     //     // Use a new publisher for best waypoint
     //     // static ros::NodeHandle nh;
     //     // static ros::Publisher best_waypoint_pub = nh.advertise<geometry_msgs::PoseStamped>("/pot_target", 10);
     
     //     ROS_INFO_STREAM("Publishing pot target...");
-    //     best_waypoint_pub.publish(pot_target);
+    //     pot_target_pub.publish(pot_target);
 
     // }
 
+    void publishPotentialTarget(const geometry_msgs::Point& pot_target_centroid) {
+        geometry_msgs::PoseStamped pot_target;
+        pot_target.header.stamp = ros::Time::now();
+        pot_target.header.frame_id = "world";
+        pot_target.pose.position = pot_target_centroid;
+        pot_target.pose.orientation.w = 1.0;
+
+        pot_target_pub.publish(pot_target);
+
+        // Store the time of publication
+        last_potential_target_sent_time_ = ros::Time::now();
+
+        ROS_INFO_STREAM("Published POTENTIAL TARGET , centroid: %f, %f, %f " << pot_target_centroid.x << pot_target_centroid.y <<pot_target_centroid.z  );
+    }
 
 
 
-    void publishFrontiers(const std::vector<ClusterInfo>& cluster_infos) {
+    void publishFinalTarget(const geometry_msgs::Point& final_target_centroid) {
+
+        double target_x = final_target_centroid.x;
+        double target_y = final_target_centroid.y;
+        double target_z = final_target_centroid.z;
+        
+    
+        // Calculate yaw based on target THIS IS WRONG, SHOULD USE UAV POSITION
+        // double target_yaw = atan2(target_y, target_x);
+        // ATTEMPT with function: (I believe it works)
+        double target_yaw = calculateYaw(target_x, target_y);
+
+    
+        // Set msgs data
+        geometry_msgs::PoseStamped waypoint;
+        waypoint.header.stamp = ros::Time::now();
+        waypoint.header.frame_id = "world";
+
+        waypoint.pose.position.x = target_x;
+        waypoint.pose.position.y = target_y;
+        waypoint.pose.position.z = target_z;
+    
+        // Calculate quaternion for yaw rotation
+        waypoint.pose.orientation.x = 0.0;
+        waypoint.pose.orientation.y = 0.0;
+        waypoint.pose.orientation.z = sin(target_yaw / 2);
+        waypoint.pose.orientation.w = cos(target_yaw / 2);
+    
+        static ros::NodeHandle nh;
+        static ros::Publisher best_waypoint_pub = nh.advertise<geometry_msgs::PoseStamped>("/best_waypoint", 10);
+
+        // Publish best waypoint
+        ROS_INFO_STREAM("Publishing FINAL TARGET: x=" << target_x << ", y=" << target_y << ", z=" << target_z << ", yaw=" << target_yaw);
+        best_waypoint_pub.publish(waypoint);
+
+        // waypoint_reached = false; 
+    }
+
+
+    void publishClusters(const std::vector<ClusterInfo>& cluster_infos) {
         visualization_msgs::MarkerArray marker_array;
         visualization_msgs::Marker marker;
         marker.header.frame_id = "world";
         marker.header.stamp = ros::Time::now();
         
-        ROS_INFO_STREAM("Publishing frontier markers with frame_id: " << marker.header.frame_id);
+        // ROS_INFO_STREAM("Publishing frontier markers with frame_id: " << marker.header.frame_id);
         
         marker.ns = "frontiers";
         marker.id = 0;
@@ -421,7 +609,7 @@ public:
     }
 
     
-    void publishFrontiers2(const std::vector<geometry_msgs::Point>& frontiers) {
+    void publishFrontiers(const std::vector<geometry_msgs::Point>& frontiers) {
         visualization_msgs::MarkerArray marker_array2;
         visualization_msgs::Marker marker2;
         marker2.header.frame_id = "world";
@@ -429,7 +617,7 @@ public:
 
 
         
-        ROS_INFO_STREAM("Publishing frontier markers with frame_id: " << marker2.header.frame_id);
+        // ROS_INFO_STREAM("Publishing frontier markers with frame_id: " << marker2.header.frame_id);
         
         marker2.ns = "frontiers2";
         marker2.id = 1;

@@ -1,25 +1,30 @@
 #include <ros/ros.h>                     
 #include <std_msgs/Float64.h>           
+
 #include <agiros_msgs/Reference.h>      // Contains a list of setpoints
 #include <agiros_msgs/Setpoint.h>       // Each setpoint has state + command
 #include <agiros_msgs/QuadState.h>      // Holds pose, velocity, acceleration
 #include <agiros_msgs/Command.h>        // Holds control command info 
+
 #include <Eigen/Dense>     
-#include <boost/filesystem.hpp>            // For fs::path
+
+using Eigen::Vector3d;
+
 
 // Includes for simulator
+// #include <agi/core/simulator_params.h>     // For SimulatorParams
 #include "agiros/agisim.hpp"
+
+
+#include <boost/filesystem.hpp>            // For fs::path
+
 
 // Includes for controller
 #include <agilib/controller/geometric/controller_geo.hpp>
 #include <agilib/controller/geometric/geo_params.hpp>
 #include <agilib/types/quadrotor.hpp>
+// #include <agilib/base/yaml.hpp>
 
-// Include for service
-#include <project_msgs/getEnergy.h>
-
-
-using Eigen::Vector3d;
 
 
 
@@ -80,27 +85,32 @@ public:
     EnergySimNode(ros::NodeHandle& nh)
         : nh_(nh),                     
             sim_dt_(1.0 / 50.0),         
-            total_energy_(0.0),
-            total_power_(0.0),
-            power_(Eigen::Vector4d::Zero())        
+            total_energy_(0.0)           
     {
-        // // Subscribe to the trajectory topic (from Moji's global planner)
-        // traj_sub_ = nh_.subscribe("/kingfisher/agiros_pilot/2trajectory", 1, &EnergySimNode::trajectoryCallback, this);
-        // // Publish energy consumed for trajectory
-        // energy_pub_ = nh_.advertise<std_msgs::Float64>("/energy_consumed", 1);
+        // Subscribe to the trajectory topic (from Moji's global planner)
+        traj_sub_ = nh_.subscribe("/kingfisher/agiros_pilot/2trajectory", 1, &EnergySimNode::trajectoryCallback, this);
 
-        energy_service = nh_.advertiseService("get_energy", &EnergySimNode::calculateEnergy, this);
+        // Publish energy consumed for trajectory
+        energy_pub_ = nh_.advertise<std_msgs::Float64>("/energy_consumed", 1);
 
+
+        // TODO: check with Leonard if implementation is correct 
         agi::SimulatorParams sim_params = loadSimulatorParams(nh_);     //load params
+        // agi_simulator_ = std::make_shared<agi::SimulatorBase>(sim_params);    //create sim instance
+        // OR??:
         agi_simulator_ = std::make_shared<agi::QuadrotorSimulator>(sim_params);
+
 
         // TODO: Create instances of the controller (ask Leonard)
         auto geo_params = loadGeoParams(nh_);           //load controller params
     
+
         agi::QuadrotorSimulator sim(sim_params);
         agi::Quadrotor quad = sim.getQuadrotor();
         
+        
         controller_geo_ = std::make_shared<agi::GeometricController>(quad, geo_params);    //create geo controloer instance
+
 
         agi_quad_state_.t = 0.0;
         agi_quad_state_.p.setZero();
@@ -116,6 +126,9 @@ public:
         agi_quad_state_.mot.setZero();
         agi_quad_state_.motdes.setZero();
 
+
+
+
         // Initialise command time to zero
         agi_cmd_.t = 0.0;
     }
@@ -126,37 +139,30 @@ private:
     // ROS communication tools
     ros::NodeHandle nh_;                 
     ros::Subscriber traj_sub_;          
-    ros::Publisher energy_pub_;      
-    // ROS service tool
-    ros::ServiceServer energy_service;
+    ros::Publisher energy_pub_;         
 
     std::shared_ptr<agi::QuadrotorSimulator> agi_simulator_;
     std::shared_ptr<agi::GeometricController> controller_geo_; // Control logic
+
     
     // Simulator state and input
     agi::Command agi_cmd_;              // Last control command
     agi::QuadState agi_quad_state_;     // Current simulated state of the drone
 
+
     double sim_dt_;                     // Simulation dt (in sec)
     double total_energy_;               // Total energy accumulated per trajectory
-    double total_power_;
-    Eigen::Vector4d power_;
 
-    
+
 
     // This function is triggered when a trajectory message is received
-    // void trajectoryCallback(const agiros_msgs::Reference::ConstPtr& msg) {
-    bool calculateEnergy(project_msgs::getEnergy::Request& req,
-                            project_msgs::getEnergy::Response& res) {
-        total_energy_ = 0.0;                        // Reset total energy count
-        total_power_ = 0.0;                         // Reset total power count
-        power_.setZero();                           // Reset power vector
- 
+    void trajectoryCallback(const agiros_msgs::Reference::ConstPtr& msg) {
+        total_energy_ = 0.0;                        // Reset energy count
         agi::SetpointVector references;             // Store all waypoints
-        agiros_msgs::Reference trajectory = req.pot_trajectory;
+
 
         // Loop over each Setpoint in the received trajectory
-        for (const auto& sp : trajectory.points) {
+        for (const auto& sp : msg->points) {
             agi::Setpoint ref;
 
 
@@ -205,6 +211,9 @@ private:
 
 
 
+
+
+
             // Validate command: if invalid, set safe default
             if (!agi_cmd_.valid()) {
                 agi_cmd_.t = 0;
@@ -215,7 +224,7 @@ private:
             // Call the simulator to apply this command for one time step
             if (!agi_simulator_->run(agi_cmd, sim_dt_)) {
                 ROS_ERROR("Simulator step failed.");
-                return false; //exit early if sim fails
+                return; //exit early if sim fails
             }
 
 
@@ -224,39 +233,21 @@ private:
             agi_simulator_->getState(&agi_quad_state_);
             
 
-            // PREV. calc.
-            // total_energy_ += agi_quad_state_.mot.array().pow(3).sum() / 1E9;
+            // !!!!!  TODO:  get the energy from quad state
+            // total_energy_ += agi_quad_state_.mot.pow(3).sum() / 1E9;
+            total_energy_ += agi_quad_state_.mot.array().pow(3).sum() / 1E9;
             
-
-            // Constants
-            const double a1 = 6.088e-03;
-            const double a3 = 1.875e-08;
-            const double a6 = 7.700e-20;
-
-            // Compute power per rotor (element-wise)
-            power_ = a1 * agi_quad_state_.mot.array()
-                + a3 * agi_quad_state_.mot.array().pow(3)
-                + a6 * agi_quad_state_.mot.array().pow(6);
-
-            // Sum power and compute energy
-            total_power_ = power_.sum(); // W
-            total_energy_ += total_power_ * sim_dt_; // J
-
+            // TODO, finish correct energy est.
+            // total_energy_ += 1.8.... * agi_quad_state_.mot.array().pow(3)
+            
+                
         }
 
         // Pub energy topic 
-        // std_msgs::Float64 energy_msg;
-        // energy_msg.data = total_energy_;
-        // energy_pub_.publish(energy_msg);
+        std_msgs::Float64 energy_msg;
+        energy_msg.data = total_energy_;
+        energy_pub_.publish(energy_msg);
 
-
-        ROS_INFO_STREAM("POWER for traj is " << total_power_ << " [W]");
-        ROS_INFO_STREAM("ENERGY for traj is " << total_energy_ << " [J]");
-
-        res.energy = total_energy_;
-
-
-        return true;
     }
 };
 
