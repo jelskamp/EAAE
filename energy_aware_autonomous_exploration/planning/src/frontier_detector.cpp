@@ -125,20 +125,20 @@ public:
 
 
             // uncomment for EAAE 
-            ROS_INFO_STREAM("start3 STARTING getTrajectory................3.................");
-            std::vector<ClusterInfo> candidate_clusters_ = getTrajectoryForCandidateClusters(cluster_infos);
+            // ROS_INFO_STREAM("start3 STARTING getTrajectory................3.................");
+            // std::vector<ClusterInfo> candidate_clusters_ = getTrajectoryForCandidateClusters(cluster_infos);
 
-            ROS_INFO_STREAM("start4 STARTING getEnergy................4.................");
-            candidate_clusters_ = getEnergyForCandidateClusters(candidate_clusters_);
+            // ROS_INFO_STREAM("start4 STARTING getEnergy................4.................");
+            // candidate_clusters_ = getEnergyForCandidateClusters(candidate_clusters_);
         
-            ROS_INFO_STREAM("start5 STARTING selectBest................5.................");
-            ClusterInfo target_cluster = selectBestCluster(candidate_clusters_);
+            // ROS_INFO_STREAM("start5 STARTING selectBest................5.................");
+            // ClusterInfo target_cluster = selectBestCluster(candidate_clusters_);
 
 
 
 
             // NON-ENERGY-AWARE:
-            // ClusterInfo target_cluster = selectBestCluster2(cluster_infos);
+            ClusterInfo target_cluster = selectBestCluster2(cluster_infos);
 
 
 
@@ -281,8 +281,8 @@ public:
         octomap::point3d origin(center.x, center.y, center.z);
 
         // Loop through a 7x7x3 region around the center voxel (centred at (4,4,1))
-        for (int dx = -5; dx <= 5; ++dx) {
-            for (int dy = -5; dy <= 5; ++dy) {
+        for (int dx = -9; dx <= 9; ++dx) {
+            for (int dy = -9; dy <= 9; ++dy) {
                 for (int dz = 5; dz <= 8; ++dz) {  // only above the centroid
                     octomap::point3d check_point = origin;
                     check_point.x() += dx * resolution;

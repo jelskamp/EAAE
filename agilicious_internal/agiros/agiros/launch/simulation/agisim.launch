@@ -140,15 +140,15 @@
     <param name="/map_ros/fx" value="695.99511719"/>
     <param name="/map_ros/fy" value="695.99511719"/> -->
 
-    <!-- <param name="/map_ros/cx" value="320.5"/>
+    <param name="/map_ros/cx" value="320.5"/>
     <param name="/map_ros/cy" value="240.5"/>
     <param name="/map_ros/fx" value="585.7560709479847"/>
-    <param name="/map_ros/fy" value="585.7560709479847"/> -->
+    <param name="/map_ros/fy" value="585.7560709479847"/>
 
-    <arg name="cx" value="510.5"/>
+    <!-- <arg name="cx" value="510.5"/>
     <arg name="cy" value="390.5"/>
     <arg name="fx" value="933.5487380733505"/>
-    <arg name="fy" value="933.5487380733505"/>
+    <arg name="fy" value="933.5487380733505"/> -->
 
     <!-- Depth Filter -->
     <param name="/map_ros/depth_filter_maxdist"   value="5.0"/>

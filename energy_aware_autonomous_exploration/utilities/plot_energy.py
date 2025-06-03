@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Load CSV file
-df = pd.read_csv('~/DATA_energy/energy_log_2025-06-02_21-02-03.csv')  # adjust file path
+df = pd.read_csv('~/DATA_energy/energy_log_2025-06-03_14-18-24.csv')  # adjust file path
 
 # Clean up column names
 df.columns = [col.strip() for col in df.columns]

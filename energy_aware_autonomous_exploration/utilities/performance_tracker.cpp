@@ -43,7 +43,7 @@ private:
 
     // double map_area = 460.44;    // simple_no_walls map area : 460.44 [m]
     // double map_area = 20.5 * 20.0;    // very_simple.world map area
-    double map_area = 21.75 * 22.5;    // pillars.world map area
+    double map_area = 21.75 * 22.5 - 3*(2 * 2);    // pillars.world map area
     
 
 public:
